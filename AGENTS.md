@@ -24,7 +24,7 @@
 - AI：服务端 DeepSeek Adapter；`deepseek-flash` 负责视觉与结构化输出，Search/Fetch 负责检索。
 - 测试与部署：Vitest 已用于单元测试；Testing Library 和 Playwright 留到对应功能任务安装。部署目标为 Vercel，Supabase 开发项目使用新加坡区域。
 
-真实工程状态：T1 工程基线的本地部分已通过，Vercel 预览尚未部署验证，因此 T1 不得标记为全部完成。当前使用 Node.js 22+、pnpm 11.25.0、Next.js 16、React 19、TypeScript 5.9、Zod 4、ESLint 9 和 Vitest 5，实际版本以 `package.json` 和 `pnpm-lock.yaml` 为准。React Hook Form、Auth.js、Supabase Client、Testing Library 和 Playwright 尚未安装。新增依赖前说明用途，并确认现有依赖不能合理完成任务。不得为了未来需求增加 ORM、状态库、微服务、队列、Redis、角色系统或组件库。
+真实工程状态：T1 工程基线已于 2026-11-03 通过本地检查、GitHub Actions、Vercel 部署和人工验收。当前使用 Node.js 22+、pnpm 11.25.0、Next.js 16、React 19、TypeScript 5.9、Zod 4、ESLint 9 和 Vitest 5，实际版本以 `package.json` 和 `pnpm-lock.yaml` 为准。React Hook Form、Auth.js、Supabase Client、Testing Library 和 Playwright 尚未安装。新增依赖前说明用途，并确认现有依赖不能合理完成任务。不得为了未来需求增加 ORM、状态库、微服务、队列、Redis、角色系统或组件库。
 
 ## 3. 目录与模块规则
 
