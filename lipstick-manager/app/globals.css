@@ -74,6 +74,12 @@ button {
   line-height: 1.75;
 }
 
+.baseline-card .session-note {
+  margin-top: 16px;
+  color: var(--text);
+  font-weight: 700;
+}
+
 .baseline-card .eyebrow {
   color: var(--accent);
   font-size: 0.75rem;

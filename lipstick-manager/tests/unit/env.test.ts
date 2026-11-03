@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseServerEnv } from "../../lib/config/env";
+import { parseAuthEnv, parseServerEnv, parseSupabaseEnv } from "../../lib/config/env";
 
 const validEnvironment = {
   APP_URL: "https://example.vercel.app",
@@ -52,5 +52,18 @@ describe("parseServerEnv", () => {
         PATH: "/usr/bin",
       }),
     ).not.toThrow();
+  });
+});
+
+describe("scoped server environment", () => {
+  it("parses auth without requiring future AI configuration", () => {
+    const environment = parseAuthEnv(validEnvironment);
+    expect(environment.ADMIN_USERNAME).toBe("admin");
+    expect(environment.SESSION_VERSION).toBe(1);
+  });
+
+  it("parses the server-only Supabase configuration independently", () => {
+    const environment = parseSupabaseEnv(validEnvironment);
+    expect(environment.SUPABASE_SECRET_KEY).toBe("supabase-secret-key");
   });
 });
