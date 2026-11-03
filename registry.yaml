@@ -1,0 +1,10 @@
+{
+  "products": [
+    {
+      "product_key": "lipstick-manager",
+      "feature_key": "inventory",
+      "prd_registry": "/Users/xuerou/Desktop/求职相关/秋招面试准备/互联网/vibe coding/product-workspace/lipstick-manager/inventory/prd/registry.yaml",
+      "prototype_registry": "/Users/xuerou/Desktop/求职相关/秋招面试准备/互联网/vibe coding/product-workspace/lipstick-manager/inventory/prototype/registry.yaml"
+    }
+  ]
+}

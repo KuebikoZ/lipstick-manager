@@ -1,0 +1,16 @@
+{
+  "prototype_id": "lipstick-manager.inventory.prototype",
+  "prototype_version_id": "20261102-122139-ffea7c",
+  "product_key": "lipstick-manager",
+  "feature_key": "inventory",
+  "source_prd_document_id": "lipstick-manager.inventory.prd",
+  "source_prd_version_id": "20261102-121038-4ddd53",
+  "source_prd_status": "draft",
+  "status": "draft",
+  "starred": false,
+  "stale": false,
+  "created_at": "2026-11-02T12:21:39.745622+08:00",
+  "updated_at": "2026-11-02T12:21:39.745622+08:00",
+  "content_hash": "47c679aecab9364ba68f0129a14316e02960613f1d6ca00a9b9e3b50cbe7753a",
+  "artifact_type": "prototype_brief"
+}

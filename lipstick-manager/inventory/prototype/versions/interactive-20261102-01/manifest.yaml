@@ -1,0 +1,309 @@
+{
+  "prototype_id": "lipstick-manager.inventory.prototype",
+  "prototype_version_id": "interactive-20261102-01",
+  "source_prd_version_id": "20261102-174301-9f3b2a",
+  "pages": [
+    {
+      "page_id": "P-001",
+      "page_key": "inventory",
+      "page_name": "我的口红柜",
+      "route": "/inventory",
+      "purpose": "管理库存与期限",
+      "entry": "默认入口／底部导航",
+      "exit": "P-002/P-003/P-004",
+      "file_path": "app/index.html#inventory",
+      "spec_path": "pages/P-001-inventory/page-spec.md",
+      "status": "generated",
+      "shared_components": [
+        "C-001",
+        "C-002",
+        "C-003",
+        "C-004",
+        "C-005",
+        "C-006",
+        "C-007",
+        "C-008"
+      ],
+      "states": [
+        "initial",
+        "loading",
+        "empty",
+        "success",
+        "partial",
+        "error",
+        "cancelled"
+      ],
+      "dependencies": [
+        "LipstickItem",
+        "Draft",
+        "AITask",
+        "Evidence"
+      ]
+    },
+    {
+      "page_id": "P-002",
+      "page_key": "detail",
+      "page_name": "口红详情",
+      "route": "/lipsticks/:id",
+      "purpose": "管理一支实物及理解日期依据",
+      "entry": "列表／买前卡片",
+      "exit": "原入口／P-004",
+      "file_path": "app/index.html#detail",
+      "spec_path": "pages/P-002-detail/page-spec.md",
+      "status": "generated",
+      "shared_components": [
+        "C-001",
+        "C-002",
+        "C-003",
+        "C-004",
+        "C-005",
+        "C-006",
+        "C-007",
+        "C-008"
+      ],
+      "states": [
+        "initial",
+        "loading",
+        "empty",
+        "success",
+        "partial",
+        "error",
+        "cancelled"
+      ],
+      "dependencies": [
+        "LipstickItem",
+        "Draft",
+        "AITask",
+        "Evidence"
+      ]
+    },
+    {
+      "page_id": "P-003",
+      "page_key": "compare",
+      "page_name": "买前查一查",
+      "route": "/compare",
+      "purpose": "购买前查看同色系库存",
+      "entry": "底部导航",
+      "exit": "P-002/P-001",
+      "file_path": "app/index.html#compare",
+      "spec_path": "pages/P-003-compare/page-spec.md",
+      "status": "generated",
+      "shared_components": [
+        "C-001",
+        "C-002",
+        "C-003",
+        "C-004",
+        "C-005",
+        "C-006",
+        "C-007",
+        "C-008"
+      ],
+      "states": [
+        "initial",
+        "loading",
+        "empty",
+        "success",
+        "partial",
+        "error",
+        "cancelled"
+      ],
+      "dependencies": [
+        "LipstickItem",
+        "Draft",
+        "AITask",
+        "Evidence"
+      ]
+    },
+    {
+      "page_id": "P-004",
+      "page_key": "intake",
+      "page_name": "录入／编辑",
+      "route": "/lipsticks/new 或 /lipsticks/:id/edit",
+      "purpose": "低成本确认信息并入库",
+      "entry": "列表新增／详情编辑",
+      "exit": "保存到详情／取消回原入口",
+      "file_path": "app/index.html#intake",
+      "spec_path": "pages/P-004-intake/page-spec.md",
+      "status": "generated",
+      "shared_components": [
+        "C-001",
+        "C-002",
+        "C-003",
+        "C-004",
+        "C-005",
+        "C-006",
+        "C-007",
+        "C-008"
+      ],
+      "states": [
+        "initial",
+        "loading",
+        "empty",
+        "success",
+        "partial",
+        "error",
+        "cancelled"
+      ],
+      "dependencies": [
+        "LipstickItem",
+        "Draft",
+        "AITask",
+        "Evidence"
+      ]
+    }
+  ],
+  "shared_components": [
+    {
+      "component_id": "C-001",
+      "name": "底部导航",
+      "path": "components/component-spec.md",
+      "used_by": [
+        "P-001",
+        "P-002",
+        "P-003",
+        "P-004"
+      ]
+    },
+    {
+      "component_id": "C-002",
+      "name": "口红卡片",
+      "path": "components/component-spec.md",
+      "used_by": [
+        "P-001",
+        "P-002",
+        "P-003",
+        "P-004"
+      ]
+    },
+    {
+      "component_id": "C-003",
+      "name": "色系选择",
+      "path": "components/component-spec.md",
+      "used_by": [
+        "P-001",
+        "P-002",
+        "P-003",
+        "P-004"
+      ]
+    },
+    {
+      "component_id": "C-004",
+      "name": "期限标签",
+      "path": "components/component-spec.md",
+      "used_by": [
+        "P-001",
+        "P-002",
+        "P-003",
+        "P-004"
+      ]
+    },
+    {
+      "component_id": "C-005",
+      "name": "图片输入",
+      "path": "components/component-spec.md",
+      "used_by": [
+        "P-001",
+        "P-002",
+        "P-003",
+        "P-004"
+      ]
+    },
+    {
+      "component_id": "C-006",
+      "name": "任务面板",
+      "path": "components/component-spec.md",
+      "used_by": [
+        "P-001",
+        "P-002",
+        "P-003",
+        "P-004"
+      ]
+    },
+    {
+      "component_id": "C-007",
+      "name": "日期依据",
+      "path": "components/component-spec.md",
+      "used_by": [
+        "P-001",
+        "P-002",
+        "P-003",
+        "P-004"
+      ]
+    },
+    {
+      "component_id": "C-008",
+      "name": "确认反馈",
+      "path": "components/component-spec.md",
+      "used_by": [
+        "P-001",
+        "P-002",
+        "P-003",
+        "P-004"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "reference-list",
+      "type": "reference_image",
+      "path": "assets/reference-list.png",
+      "used_by": [
+        "P-001"
+      ]
+    }
+  ],
+  "mock_data": "data/mock-data.json",
+  "reviews": [
+    "reviews/consistency-review.md"
+  ],
+  "snapshots": [
+    "snapshots/inventory-desktop.png"
+  ],
+  "demo_flows": [
+    {
+      "flow_id": "F-001",
+      "name": "录入闭环",
+      "start_page": "P-001",
+      "steps": [
+        "新增",
+        "上传并开始识别",
+        "同时填写开封信息",
+        "统一确认",
+        "保存详情"
+      ]
+    },
+    {
+      "flow_id": "F-002",
+      "name": "买前库存",
+      "start_page": "P-001",
+      "steps": [
+        "买前页",
+        "豆沙系",
+        "详情",
+        "移出库存",
+        "返回并核对数量"
+      ]
+    },
+    {
+      "flow_id": "F-003",
+      "name": "失败恢复",
+      "start_page": "P-001",
+      "steps": [
+        "识别失败",
+        "手填",
+        "待分类保存"
+      ]
+    },
+    {
+      "flow_id": "F-004",
+      "name": "日期规则",
+      "start_page": "P-001",
+      "steps": [
+        "详情依据",
+        "修改日期",
+        "核对冲突",
+        "重算"
+      ]
+    }
+  ]
+}

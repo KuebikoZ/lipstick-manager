@@ -1,0 +1,12 @@
+{
+  "product_key": "lipstick-manager",
+  "feature_key": "inventory",
+  "document_id": "lipstick-manager.inventory.prd",
+  "version_id": "20261102-121038-4ddd53",
+  "source_version_id": "20261102-114516-12e6ac",
+  "status": "draft",
+  "starred": false,
+  "created_at": "2026-11-02T12:10:38.386921+08:00",
+  "updated_at": "2026-11-02T12:10:38.386921+08:00",
+  "content_hash": "6e385d8e628adaecefdc470dfaa36bc0949abf59dd816e44244d3b40639011a0"
+}

@@ -1,0 +1,19 @@
+# dependencies and build output
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+
+# local environment files
+.env*
+!.env.example
+
+# local tooling and OS files
+.DS_Store
+*.tsbuildinfo
+pnpm-debug.log*
+
+# Vercel local metadata
+.vercel/

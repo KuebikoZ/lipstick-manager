@@ -1,0 +1,56 @@
+import { describe, expect, it } from "vitest";
+import { parseServerEnv } from "../../lib/config/env";
+
+const validEnvironment = {
+  APP_URL: "https://example.vercel.app",
+  AUTH_SECRET: "a".repeat(32),
+  ADMIN_USERNAME: "admin",
+  ADMIN_PASSWORD_HASH: "$argon2id$valid-placeholder",
+  SESSION_VERSION: "1",
+  SUPABASE_URL: "https://example.supabase.co",
+  SUPABASE_SECRET_KEY: "supabase-secret-key",
+  SUPABASE_STORAGE_BUCKET: "lipstick-images",
+  AI_PROVIDER: "deepseek",
+  AI_MODEL: "deepseek-flash",
+  AI_API_KEY: "deepseek-key",
+  AI_MAX_COST_CNY: "2",
+  AI_USD_CNY_RATE: "7.2",
+  LOG_LEVEL: "info",
+};
+
+describe("parseServerEnv", () => {
+  it("accepts the documented server environment", () => {
+    const environment = parseServerEnv(validEnvironment);
+
+    expect(environment.AI_PROVIDER).toBe("deepseek");
+    expect(environment.AI_MAX_COST_CNY).toBe(2);
+    expect(environment.SUPABASE_SECRET_KEY).toBe("supabase-secret-key");
+  });
+
+  it("rejects public secrets and unknown variables", () => {
+    expect(() =>
+      parseServerEnv({
+        ...validEnvironment,
+        NEXT_PUBLIC_AI_API_KEY: "must-not-be-public",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an AI task budget above two yuan", () => {
+    expect(() =>
+      parseServerEnv({
+        ...validEnvironment,
+        AI_MAX_COST_CNY: "2.01",
+      }),
+    ).toThrow();
+  });
+
+  it("ignores unrelated process variables", () => {
+    expect(() =>
+      parseServerEnv({
+        ...validEnvironment,
+        PATH: "/usr/bin",
+      }),
+    ).not.toThrow();
+  });
+});

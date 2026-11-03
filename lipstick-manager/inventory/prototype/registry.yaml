@@ -1,0 +1,62 @@
+{
+  "prototype_id": "lipstick-manager.inventory.prototype",
+  "current_version_id": "interactive-20261102-01",
+  "approved_version_id": null,
+  "versions": [
+    {
+      "prototype_id": "lipstick-manager.inventory.prototype",
+      "prototype_version_id": "20261102-122139-ffea7c",
+      "product_key": "lipstick-manager",
+      "feature_key": "inventory",
+      "source_prd_document_id": "lipstick-manager.inventory.prd",
+      "source_prd_version_id": "20261102-121038-4ddd53",
+      "source_prd_status": "draft",
+      "status": "draft",
+      "starred": false,
+      "stale": true,
+      "created_at": "2026-11-02T12:21:39.745622+08:00",
+      "updated_at": "2026-11-02T12:21:39.745622+08:00",
+      "content_hash": "47c679aecab9364ba68f0129a14316e02960613f1d6ca00a9b9e3b50cbe7753a",
+      "artifact_type": "prototype_brief",
+      "path": "/Users/xuerou/Desktop/求职相关/秋招面试准备/互联网/vibe coding/product-workspace/lipstick-manager/inventory/prototype/versions/20261102-122139-ffea7c/brief.md",
+      "change_summary": "首次生成四页原型Brief"
+    },
+    {
+      "prototype_id": "lipstick-manager.inventory.prototype",
+      "prototype_version_id": "20261102-124230-8608e0",
+      "product_key": "lipstick-manager",
+      "feature_key": "inventory",
+      "source_prd_document_id": "lipstick-manager.inventory.prd",
+      "source_prd_version_id": "20261102-124230-7140cc",
+      "source_prd_status": "draft",
+      "status": "draft",
+      "starred": false,
+      "stale": false,
+      "created_at": "2026-11-02T12:42:30.752955+08:00",
+      "updated_at": "2026-11-02T12:42:30.752955+08:00",
+      "content_hash": "1c190d674b735e0db2ce63d2777296bed728db11709c5cb17760913b211b0e14",
+      "artifact_type": "prototype_brief",
+      "source_version_id": "20261102-122139-ffea7c",
+      "path": "/Users/xuerou/Desktop/求职相关/秋招面试准备/互联网/vibe coding/product-workspace/lipstick-manager/inventory/prototype/versions/20261102-124230-8608e0/brief.md",
+      "change_summary": "移除库存范围；独立维度筛选；并行录入和完整编辑",
+      "linked_prototype_versions": []
+    },
+    {
+      "prototype_id": "lipstick-manager.inventory.prototype",
+      "prototype_version_id": "interactive-20261102-01",
+      "product_key": "lipstick-manager",
+      "feature_key": "inventory",
+      "source_prd_document_id": "lipstick-manager.inventory.prd",
+      "source_prd_version_id": "20261102-174301-9f3b2a",
+      "source_prd_status": "draft",
+      "status": "draft",
+      "starred": false,
+      "stale": false,
+      "created_at": "2026-11-02T15:02:00+08:00",
+      "updated_at": "2026-11-02T17:43:01+08:00",
+      "artifact_type": "interactive_prototype",
+      "path": "/Users/xuerou/Desktop/求职相关/秋招面试准备/互联网/vibe coding/product-workspace/lipstick-manager/inventory/prototype/versions/interactive-20261102-01/app/index.html",
+      "change_summary": "生成可交互原型：本地库存、并行录入、期限计算、组合筛选与买前色系查看"
+    }
+  ]
+}
