@@ -7,10 +7,10 @@ import { getClientIp } from "@/lib/auth/client-ip";
 import { ADMIN_SUBJECT } from "@/lib/auth/constants";
 import { authenticateAdmin } from "@/lib/auth/authenticate-admin";
 import {
-  createSupabaseAdminClient,
   LoginRateLimitUnavailableError,
   SupabaseLoginRateLimitStore,
 } from "@/lib/auth/login-rate-limit";
+import { createSupabaseAdminClient } from "@/lib/db/supabase-admin";
 import { parseAuthEnv, parseSupabaseEnv } from "@/lib/config/env";
 
 const credentialsSchema = z.object({

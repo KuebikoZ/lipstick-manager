@@ -1,6 +1,6 @@
 # 口红柜
 
-单用户、移动端优先的口红库存管理 MVP。T1 工程基线已通过本地检查、GitHub Actions、Vercel 部署和人工验收；当前不包含业务功能或业务数据。
+单用户、移动端优先的口红库存管理 MVP。T1 工程基线、T2 单用户登录保护和 T3 数据结构、私有图片边界及领域规则已通过对应阶段验收。
 
 ## 本地环境
 
@@ -27,6 +27,18 @@
 
 登录限流使用 Supabase 的 `auth_login_attempts` 表；第 5 次失败后锁定 15 分钟。
 修改密码或需要强制全部会话失效时，递增 `SESSION_VERSION`。
+
+## T3 开发数据库与私有 Storage
+
+仅在开发 Supabase 项目中，按文件名顺序执行：
+
+1. `supabase/migrations/20261103220000_create_auth_login_attempts.sql`
+2. `supabase/migrations/20261104090000_create_inventory_domain.sql`
+
+第二个 migration 建立领域表、约束、RLS 和私有 `lipstick-images` bucket。
+`.env.local` 中的 `SUPABASE_STORAGE_BUCKET` 必须为 `lipstick-images`。本期浏览器不持有
+Supabase key；所有数据库和对象操作必须在 Auth.js 会话校验后的服务端路径中使用
+`SUPABASE_SECRET_KEY`。不要在 T1–T10 对生产项目执行 migration。
 
 ## 命令
 

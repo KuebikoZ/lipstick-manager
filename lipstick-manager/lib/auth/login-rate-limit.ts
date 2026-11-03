@@ -1,6 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { SupabaseEnv } from "@/lib/config/env";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type LoginAttempt = {
   windowStartedAt: Date;
@@ -52,16 +51,6 @@ export function createLoginKeyHash(
 
 export function isLoginLimited(attempt: LoginAttempt | null, now: Date): boolean {
   return Boolean(attempt?.lockedUntil && attempt.lockedUntil.getTime() > now.getTime());
-}
-
-export function createSupabaseAdminClient(env: SupabaseEnv): SupabaseClient {
-  return createClient(env.SUPABASE_URL, env.SUPABASE_SECRET_KEY, {
-    auth: {
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: false,
-    },
-  });
 }
 
 export class SupabaseLoginRateLimitStore implements LoginRateLimitStore {
