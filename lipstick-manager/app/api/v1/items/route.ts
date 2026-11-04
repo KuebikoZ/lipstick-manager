@@ -13,11 +13,11 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const params = new URL(request.url).searchParams;
     return dataResponse(await createInventoryService().listItems({
-      life: params.get("life") ?? undefined,
-      time: params.get("time") ?? undefined,
-      color: params.get("color") ?? undefined,
-      brand: params.get("brand") ?? undefined,
-      sort: params.get("sort") ?? undefined,
+      life: params.get("life") || undefined,
+      time: params.get("time") || undefined,
+      color: params.get("color") || undefined,
+      brand: params.get("brand") || undefined,
+      sort: params.get("sort") || undefined,
     }));
   } catch (error) {
     return inventoryErrorResponse(error);

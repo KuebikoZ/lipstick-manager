@@ -29,9 +29,7 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
           <div><dt>备注</dt><dd>{item.note ?? "未记录"}</dd></div>
         </dl>
         <section className={styles.timeline} aria-label="产品时间轴">
-          <div><i>1</i><strong>录入日期</strong><span>{item.created_at.slice(0,10)}</span></div>
-          <div><i>2</i><strong>开封日期</strong><span>{item.lifecycle === "unopened" ? "尚未开封" : item.opened_on ?? "未记录"}</span></div>
-          <div><i>3</i><strong>到期日期</strong><span>{item.deadline ?? "待补充"}</span></div>
+          {timeline(item).map((node,index)=><div key={node.label}><i>{index+1}</i><strong>{node.label}</strong><span>{node.text}</span></div>)}
         </section>
         <div className={styles.actions}>
           <Link href="/inventory/new">继续新增</Link>
@@ -51,4 +49,12 @@ async function loadItem(id: string) {
     if (error instanceof InventoryNotFoundError) notFound();
     throw error;
   }
+}
+
+function timeline(item: Awaited<ReturnType<typeof loadItem>>) {
+  return [
+    { label: "录入日期", date: item.created_at.slice(0,10), text: item.created_at.slice(0,10) },
+    { label: "开封日期", date: item.opened_on, text: item.lifecycle === "unopened" ? "尚未开封" : item.opened_on ?? "未记录" },
+    { label: "到期日期", date: item.deadline, text: item.deadline ?? "待补充" },
+  ].sort((left,right)=>left.date&&right.date?left.date.localeCompare(right.date):left.date?-1:right.date?1:0);
 }
