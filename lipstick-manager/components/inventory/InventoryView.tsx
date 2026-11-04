@@ -21,7 +21,7 @@ export function InventoryView({ data, query }: { data: InventoryListResult; quer
       <Link href="/inventory?life=opened"><span>已开封</span><strong>{data.summary.opened}</strong><small>支</small></Link>
       <Link href="/inventory?time=days_0_30"><span>30天内到期</span><strong>{data.summary.due_0_30}</strong><small>支</small></Link>
     </section>
-    <form className={styles.filters} action="/inventory">
+    <form key={params(query)} className={styles.filters} action="/inventory">
       <label>期限状态<select name="time" defaultValue={query.time ?? ""}><option value="">全部期限</option><option value="over_180">超过180天</option><option value="days_91_180">91–180天</option><option value="days_31_90">31–90天</option><option value="days_0_30">30天内到期（含今日）</option><option value="expired">已到期</option><option value="unknown">期限待补充</option></select></label>
       <label>开封状态<select name="life" defaultValue={query.life ?? ""}><option value="">全部状态</option><option value="opened">已开封</option><option value="unopened">未开封</option><option value="unknown">待补充</option></select></label>
       <label>色系<select name="color" defaultValue={query.color ?? ""}><option value="">全部色系</option>{Object.entries(colors).map(([v,l])=><option key={v} value={v}>{l}</option>)}<option value="pending">待分类</option></select></label>
