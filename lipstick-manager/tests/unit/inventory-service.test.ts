@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { InventoryStore } from "@/lib/db/inventory-repository";
 import type { Draft, LipstickItem } from "@/lib/domain/item";
-import { InventoryService, InventoryValidationError, RevisionConflictError } from "@/lib/services/inventory-service";
+import { InventoryService, RevisionConflictError } from "@/lib/services/inventory-service";
 
 const draft: Draft = {
   id: "c085b980-b24d-4d85-884d-42acf1bf7652",
@@ -75,14 +75,15 @@ describe("inventory service", () => {
     expect(secondHash).toBe(firstHash);
   });
 
-  it("rejects images and AI bindings before their stages", async () => {
-    const service = new InventoryService(createStore());
-    await expect(
-      service.createItem(
-        { ...validInput, image_ids: ["7bb11a3e-a2a0-4f71-8294-2c2472604579"] },
-        "ca29a3a8-8c79-4439-a8a4-e002a8a2434c",
-      ),
-    ).rejects.toBeInstanceOf(InventoryValidationError);
+  it("passes validated image and AI bindings to the transactional repository", async () => {
+    const store = createStore();
+    const service = new InventoryService(store);
+    const imageId = "7bb11a3e-a2a0-4f71-8294-2c2472604579";
+    await service.createItem(
+      { ...validInput, image_ids: [imageId], cover_image_id: imageId },
+      "ca29a3a8-8c79-4439-a8a4-e002a8a2434c",
+    );
+    expect(store.createItem).toHaveBeenCalledWith(expect.objectContaining({ image_ids: [imageId] }), expect.any(String), expect.any(String));
   });
 
   it("treats invalid item ids as not found without querying storage", async () => {

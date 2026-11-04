@@ -1,0 +1,102 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { aiConsentVersion, type AIModelResult } from "@/lib/domain/ai-intake";
+import styles from "./AIImageIntake.module.css";
+
+type AIResult = AIModelResult & { task_id: string; status: string; evidence?: Array<{ id: string; field_name: string; kind: string; excerpt: string | null; url: string | null }> };
+type Props = {
+  draftId: string;
+  initialImageIds: string[];
+  onImagesChange(ids: string[]): void;
+  onApply(field: string, value: string | number | null, taskId: string): void;
+};
+
+export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onApply }: Props) {
+  const [images, setImages] = useState<Array<{ id: string; name: string; preview: string }>>(
+    initialImageIds.map((id, index) => ({ id, name: `已上传图片 ${index + 1}`, preview: "" })),
+  );
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [result, setResult] = useState<AIResult | null>(null);
+  const [showConsent, setShowConsent] = useState(false);
+  const pollRef = useRef<number | null>(null);
+
+  useEffect(() => () => { if (pollRef.current) window.clearTimeout(pollRef.current); }, []);
+  const updateImages = (next: typeof images) => { setImages(next); onImagesChange(next.map((image) => image.id)); };
+
+  async function addFiles(files: FileList | null) {
+    if (!files?.length) return;
+    if (images.length + files.length > 3) { setError("最多上传 3 张图片"); return; }
+    setUploading(true); setError(null);
+    const next = [...images];
+    try {
+      for (const file of Array.from(files)) {
+        const created = await fetch("/api/v1/uploads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file_name: file.name, mime_type: file.type, byte_size: file.size, draft_id: draftId }) });
+        const createdBody = await created.json();
+        if (!created.ok) throw new Error(createdBody.error?.field_errors?.image ?? createdBody.error?.message ?? "无法准备图片上传");
+        const upload = await fetch(createdBody.data.upload_url, { method: "PUT", headers: { "Content-Type": file.type, "x-upsert": "false" }, body: file });
+        if (!upload.ok) throw new Error("图片上传失败，请重试");
+        const completed = await fetch(`/api/v1/uploads/${createdBody.data.image_id}/complete`, { method: "POST" });
+        if (!completed.ok) { const body = await completed.json(); throw new Error(body.error?.message ?? "图片校验失败"); }
+        next.push({ id: createdBody.data.image_id, name: file.name, preview: URL.createObjectURL(file) });
+      }
+      updateImages(next);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "图片上传失败，请重试"); }
+    finally { setUploading(false); }
+  }
+
+  async function removeImage(id: string) {
+    const response = await fetch(`/api/v1/uploads/${id}`, { method: "DELETE" });
+    if (!response.ok) { setError("暂时无法移除图片"); return; }
+    updateImages(images.filter((image) => image.id !== id));
+  }
+
+  async function poll(id: string) {
+    const response = await fetch(`/api/v1/ai/tasks/${id}`);
+    if (!response.ok) { setError("识别状态读取失败，可继续手工填写"); return; }
+    const body = await response.json(); const data = body.data as AIResult;
+    setStatus(data.status);
+    if (["queued", "recognizing", "needs_confirmation", "researching"].includes(data.status)) {
+      pollRef.current = window.setTimeout(() => void poll(id), 1200); return;
+    }
+    if (data.status === "complete" || data.status === "partial") setResult(data);
+    else setError(data.status === "cancelled" ? "已取消识别，手工录入不受影响" : "识别未完成，可继续手工填写或重试");
+  }
+
+  async function startRecognition(confirmed = false) {
+    if (!images.length) { setError("请先上传至少 1 张图片；也可以直接手工录入"); return; }
+    const consented = window.localStorage.getItem("ai-image-consent") === aiConsentVersion;
+    if (!consented && !confirmed) { setShowConsent(true); return; }
+    if (confirmed) window.localStorage.setItem("ai-image-consent", aiConsentVersion);
+    setShowConsent(false); setError(null); setResult(null); setStatus("queued");
+    const response = await fetch("/api/v1/ai/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draft_id: draftId, image_ids: images.map((image) => image.id), consent_version: aiConsentVersion, confirmed_identity: { brand: null, series: null, shade_code: null } }) });
+    const body = await response.json();
+    if (!response.ok) { setStatus(null); setError(body.error?.field_errors?.ai ?? body.error?.message ?? "无法开始识别"); return; }
+    setTaskId(body.data.task_id); void poll(body.data.task_id);
+  }
+
+  async function cancel() {
+    if (!taskId) return;
+    await fetch(`/api/v1/ai/tasks/${taskId}/cancel`, { method: "POST" });
+    setStatus("cancelled"); if (pollRef.current) window.clearTimeout(pollRef.current);
+  }
+
+  const applying = result ? { ...result.identity, ...result.suggestions } : null;
+  return (
+    <section className={styles.root} aria-labelledby="ai-intake-title">
+      <div className={styles.heading}><div><h2 id="ai-intake-title">图片辅助识别</h2><p>可选 0–3 张。只有点击开始识别后图片才会发送给 DeepSeek。</p></div><span>{images.length}/3</span></div>
+      <label className={styles.picker}><input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading || images.length >= 3} onChange={(event) => void addFiles(event.target.files)} /><span>{uploading ? "正在上传并校验…" : images.length ? "继续添加图片" : "选择口红包装图片"}</span></label>
+      {images.length ? <ul className={styles.images}>{images.map((image) => <li key={image.id}>{image.preview ? <Image src={image.preview} alt="" width={52} height={52} unoptimized /> : <span className={styles.placeholder}>私有图片</span>}<span>{image.name}</span><button type="button" onClick={() => void removeImage(image.id)} disabled={Boolean(status && !["failed", "cancelled", "timed_out", "complete", "partial"].includes(status))}>移除</button></li>)}</ul> : null}
+      {showConsent ? <div className={styles.consent} role="alert"><strong>首次图片外传确认</strong><p>点击同意后，本次所选图片会发送至 DeepSeek 用于识别包装文字和产品信息。图片不会公开；你可以忽略全部建议并继续手填。</p><div><button type="button" onClick={() => void startRecognition(true)}>同意并开始识别</button><button type="button" className={styles.secondary} onClick={() => setShowConsent(false)}>暂不识别</button></div></div> : null}
+      <div className={styles.controls}><button type="button" onClick={() => void startRecognition()} disabled={uploading || Boolean(status && ["queued", "recognizing", "researching"].includes(status))}>{status && ["queued", "recognizing", "researching"].includes(status) ? "正在识别…" : "开始识别"}</button>{status && ["queued", "recognizing", "researching"].includes(status) ? <button type="button" className={styles.secondary} onClick={() => void cancel()}>取消</button> : null}</div>
+      {error ? <p className={styles.error} role="alert">{error}</p> : null}
+      {result && applying ? <div className={styles.suggestions}><h3>识别建议</h3><p>逐项采用，不会自动覆盖你的输入。</p>{Object.entries(applying).filter(([, value]) => value !== null).map(([field, value]) => <div className={styles.suggestion} key={field}><span><strong>{fieldLabel(field)}</strong><small>{String(value)}</small></span><button type="button" onClick={() => onApply(field, value, result.task_id)}>采用</button></div>)}{result.evidence?.length ? <details><summary>查看证据（{result.evidence.length}）</summary><ul>{result.evidence.map((evidence) => <li key={evidence.id}>{evidence.url ? <a href={evidence.url} target="_blank" rel="noreferrer">{evidence.excerpt || evidence.url}</a> : evidence.excerpt || "来自上传图片"}</li>)}</ul></details> : null}</div> : null}
+    </section>
+  );
+}
+
+function fieldLabel(field: string) { return ({ brand: "品牌", series: "系列", shade_code: "色号", color_family: "主色系", color_description: "颜色说明", texture: "质地", pao_months: "开封后月数", manufactured_on: "生产日期", shelf_life_months: "未开封保质期", expires_on: "到期日期" } as Record<string, string>)[field] ?? field; }

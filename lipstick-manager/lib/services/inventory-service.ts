@@ -81,9 +81,6 @@ export class InventoryService {
     if (!parsed.success) {
       throw new InventoryValidationError(fieldErrorsFromIssues(parsed.error.issues));
     }
-    if (parsed.data.image_ids.length > 0 || parsed.data.accepted_ai_task_id) {
-      throw new InventoryValidationError({ image_ids: "图片与 AI 建议将在后续阶段开放" });
-    }
     const requestHash = createHash("sha256")
       .update(canonicalJson(parsed.data))
       .digest("hex");

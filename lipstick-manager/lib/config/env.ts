@@ -83,3 +83,9 @@ export function parseSupabaseEnv(
 ): SupabaseEnv {
   return parseSelectedEnv<SupabaseEnv>(supabaseEnvSchema, environment);
 }
+
+const aiEnvSchema = z.object(aiEnvShape).strict();
+export type AIEnv = z.infer<typeof aiEnvSchema>;
+export function parseAIEnv(environment: Record<string, string | undefined>): AIEnv {
+  return parseSelectedEnv<AIEnv>(aiEnvSchema, environment);
+}

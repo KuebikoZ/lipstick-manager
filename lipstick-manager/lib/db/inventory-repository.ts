@@ -144,6 +144,8 @@ export class InventoryRepository {
       expires_on: input.expires_on,
       expiry_source: input.expiry_source,
       note: input.note,
+      image_ids: input.image_ids,
+      accepted_ai_task_id: input.accepted_ai_task_id,
     };
     const { data, error } = await this.client
       .rpc("create_lipstick_item", {

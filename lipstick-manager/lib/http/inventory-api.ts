@@ -9,6 +9,7 @@ import {
 } from "@/lib/services/inventory-service";
 import { errorResponse } from "@/lib/http/api-response";
 import { allowedAppOrigins, hasValidOrigin } from "@/lib/http/origin";
+import { ImageUploadError } from "@/lib/services/upload-service";
 
 export const uuidSchema = z.uuid();
 
@@ -53,6 +54,9 @@ export function inventoryErrorResponse(error: unknown): Response {
   }
   if (error instanceof InventoryDependencyError) {
     return errorResponse(503, "DEPENDENCY_UNAVAILABLE", "数据服务暂时不可用，请稍后重试");
+  }
+  if (error instanceof ImageUploadError) {
+    return errorResponse(error.status, error.code, error.message);
   }
   return errorResponse(500, "INTERNAL_ERROR", "暂时无法完成操作");
 }

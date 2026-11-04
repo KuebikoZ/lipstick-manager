@@ -9,6 +9,7 @@ import { z } from "zod";
 import type { Draft } from "@/lib/domain/item";
 import { colorFamilies, type ColorFamily, type Lifecycle } from "@/lib/domain/inventory";
 import type { ItemWriteInput } from "@/lib/domain/item-schema";
+import { AIImageIntake } from "./AIImageIntake";
 import styles from "./ManualIntakeForm.module.css";
 
 const optionalDate = z.union([z.literal(""), z.iso.date()]);
@@ -77,7 +78,7 @@ function numberOrNull(value: string): number | null {
   return value ? Number(value) : null;
 }
 
-function toItemInput(values: FormValues): ItemWriteInput {
+function toItemInput(values: FormValues, imageIds: string[] = [], acceptedTaskId: string | null = null): ItemWriteInput {
   const openedOn = values.opened_on || null;
   const expiresOn = values.expires_on || null;
   return {
@@ -98,14 +99,14 @@ function toItemInput(values: FormValues): ItemWriteInput {
     expires_on: expiresOn,
     expiry_source: expiresOn ? "explicit" : null,
     note: textOrNull(values.note),
-    image_ids: [],
-    cover_image_id: null,
-    accepted_ai_task_id: null,
+    image_ids: imageIds,
+    cover_image_id: imageIds[0] ?? null,
+    accepted_ai_task_id: acceptedTaskId,
   };
 }
 
-function toDraftPayload(values: FormValues): Record<string, unknown> {
-  const input = toItemInput(values);
+function toDraftPayload(values: FormValues, imageIds: string[] = [], acceptedTaskId: string | null = null): Record<string, unknown> {
+  const input = toItemInput(values, imageIds, acceptedTaskId);
   if (!values.color_family) {
     const payload: Record<string, unknown> = { ...input };
     delete payload.color_family;
@@ -150,11 +151,15 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
   const [keepDraftPending, setKeepDraftPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submission, setSubmission] = useState<{ body: string; key: string } | null>(null);
+  const initialPayload = draft.payload as Partial<ItemWriteInput>;
+  const [imageIds, setImageIds] = useState<string[]>(initialPayload.image_ids ?? []);
+  const [acceptedTaskId, setAcceptedTaskId] = useState<string | null>(initialPayload.accepted_ai_task_id ?? null);
   const {
     register,
     handleSubmit,
     control,
     getValues,
+    setValue,
     setError,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<FormValues>({
@@ -174,7 +179,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         const response = await fetch(`/api/v1/drafts/${draft.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ payload: toDraftPayload(completeValues) }),
+          body: JSON.stringify({ payload: toDraftPayload(completeValues, imageIds, acceptedTaskId) }),
         });
         setDraftStatus(response.ok ? "saved" : "failed");
       } catch {
@@ -182,11 +187,11 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
       }
     }, 1_000);
     return () => window.clearTimeout(timer);
-  }, [draft.id, isDirty, watchedValues]);
+  }, [acceptedTaskId, draft.id, imageIds, isDirty, watchedValues]);
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
-    const input = toItemInput(values);
+    const input = toItemInput(values, imageIds, acceptedTaskId);
     const body = JSON.stringify(input);
     const currentSubmission =
       submission?.body === body ? submission : { body, key: crypto.randomUUID() };
@@ -223,7 +228,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
       const response = await fetch(`/api/v1/drafts/${draft.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload: toDraftPayload(getValues()) }),
+        body: JSON.stringify({ payload: toDraftPayload(getValues(), imageIds, acceptedTaskId) }),
       });
       if (!response.ok) {
         setDraftStatus("failed");
@@ -252,10 +257,23 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         </span>
       </header>
 
-      <section className={styles.notice} aria-label="本阶段说明">
-        <strong>本阶段支持无图手工录入</strong>
-        <span>图片上传和 AI 识别将在后续阶段提供，不影响本次保存。</span>
+      <section className={styles.notice} aria-label="录入说明">
+        <strong>图片识别是可选辅助</strong>
+        <span>不上传图片也能完整保存；AI 结果只作为建议，由你逐项决定是否采用。</span>
       </section>
+
+      <AIImageIntake
+        draftId={draft.id}
+        initialImageIds={imageIds}
+        onImagesChange={(ids) => { setImageIds(ids); setAcceptedTaskId(null); }}
+        onApply={(field, value, taskId) => {
+          const fieldName = field as keyof FormValues;
+          if (!(fieldName in blankValues)) return;
+          const normalized = typeof value === "number" ? String(value) : value ?? "";
+          setValue(fieldName, normalized as never, { shouldDirty: true, shouldValidate: true });
+          setAcceptedTaskId(taskId);
+        }}
+      />
 
       <fieldset className={styles.section}>
         <legend>持有状态</legend>
