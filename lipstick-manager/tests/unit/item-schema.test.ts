@@ -58,6 +58,26 @@ describe("item write schema", () => {
     }
   });
 
+  it("allows a future expiry date when its source is explicit", () => {
+    const result = createItemWriteSchema("2026-11-04").safeParse({
+      ...validInput,
+      expires_on: "2027-11-04",
+      expiry_source: "explicit",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a future manufacture date", () => {
+    const result = createItemWriteSchema("2026-11-04").safeParse({
+      ...validInput,
+      manufactured_on: "2026-11-05",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.manufactured_on).toBeDefined();
+    }
+  });
+
   it("accepts incomplete but bounded draft content", () => {
     expect(
       draftPayloadSchema.safeParse({ display_name: "", color_family_confirmed: false }).success,

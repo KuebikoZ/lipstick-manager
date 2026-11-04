@@ -7,13 +7,18 @@ import {
   InventoryValidationError,
 } from "@/lib/services/inventory-service";
 import { errorResponse } from "@/lib/http/api-response";
-import { hasValidOrigin } from "@/lib/http/origin";
+import { allowedAppOrigins, hasValidOrigin } from "@/lib/http/origin";
 
 export const uuidSchema = z.uuid();
 
 export function invalidOriginResponse(request: Request): Response | null {
   const { APP_URL } = parseAuthEnv(process.env);
-  return hasValidOrigin(request, APP_URL)
+  const allowedOrigins = allowedAppOrigins(
+    APP_URL,
+    process.env.VERCEL_URL,
+    process.env.VERCEL_BRANCH_URL,
+  );
+  return hasValidOrigin(request, allowedOrigins)
     ? null
     : errorResponse(403, "ORIGIN_MISMATCH", "请求来源无效");
 }

@@ -4,7 +4,7 @@ import { getClientIp } from "@/lib/auth/client-ip";
 import { createLoginKeyHash } from "@/lib/auth/login-rate-limit";
 import { safeReturnTo } from "@/lib/auth/return-to";
 import { messageForLoginCode } from "@/lib/auth/login-state";
-import { hasValidOrigin } from "@/lib/http/origin";
+import { allowedAppOrigins, hasValidOrigin } from "@/lib/http/origin";
 
 describe("authentication boundaries", () => {
   it("protects pages and APIs while keeping login, health, and Auth.js public", () => {
@@ -46,6 +46,36 @@ describe("authentication boundaries", () => {
           headers: { origin: "https://evil.example" },
         }),
         "https://app.example.test",
+      ),
+    ).toBe(false);
+  });
+
+  it("accepts Vercel deployment and branch origins without trusting arbitrary hosts", () => {
+    const origins = allowedAppOrigins(
+      "https://app.example.test",
+      "lipstick-manager-abc-kbk10.vercel.app",
+      "lipstick-manager-git-feature-t4-manual-intake-kbk10.vercel.app",
+    );
+
+    expect(origins).toEqual([
+      "https://app.example.test",
+      "https://lipstick-manager-abc-kbk10.vercel.app",
+      "https://lipstick-manager-git-feature-t4-manual-intake-kbk10.vercel.app",
+    ]);
+    expect(
+      hasValidOrigin(
+        new Request("https://lipstick-manager-abc-kbk10.vercel.app/api/v1/items", {
+          headers: { origin: "https://lipstick-manager-abc-kbk10.vercel.app" },
+        }),
+        origins,
+      ),
+    ).toBe(true);
+    expect(
+      hasValidOrigin(
+        new Request("https://attacker.example/api/v1/items", {
+          headers: { origin: "https://attacker.example" },
+        }),
+        origins,
       ),
     ).toBe(false);
   });
