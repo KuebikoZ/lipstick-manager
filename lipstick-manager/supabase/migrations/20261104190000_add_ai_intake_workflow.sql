@@ -52,6 +52,7 @@ begin
   if accepted_task_id is not null and not exists (
     select 1 from public.ai_tasks where id = accepted_task_id
       and draft_id = current_draft_id and status in ('partial', 'complete')
+      and input_image_ids <@ requested_image_ids and requested_image_ids <@ input_image_ids
   ) then
     raise exception 'AI_TASK_INVALID' using errcode = 'P0001';
   end if;

@@ -1,0 +1,209 @@
+{
+  "generated_at": "2026-11-04T15:26:36.621Z",
+  "dataset": "private-5-sample-development-baseline",
+  "sample_count": 5,
+  "field_accuracy": 0.65,
+  "failures": [
+    {
+      "id": "dior-521",
+      "fields": {
+        "brand": true,
+        "series": false,
+        "shade_code": true,
+        "color_family": false
+      },
+      "correct": 2,
+      "total": 4
+    },
+    {
+      "id": "chanel-69",
+      "fields": {
+        "brand": true,
+        "series": false,
+        "shade_code": true,
+        "color_family": true
+      },
+      "correct": 3,
+      "total": 4
+    },
+    {
+      "id": "mac-826",
+      "fields": {
+        "brand": true,
+        "series": false,
+        "shade_code": true,
+        "color_family": true
+      },
+      "correct": 3,
+      "total": 4
+    },
+    {
+      "id": "3ce-speak-up",
+      "fields": {
+        "brand": true,
+        "series": false,
+        "shade_code": false,
+        "color_family": true
+      },
+      "correct": 2,
+      "total": 4
+    },
+    {
+      "id": "into-you-gw01",
+      "fields": {
+        "brand": true,
+        "series": false,
+        "shade_code": true,
+        "color_family": true
+      },
+      "correct": 3,
+      "total": 4
+    }
+  ],
+  "json_pass_rate": 1,
+  "repeat_consistency_coverage": 0.4,
+  "repeat_consistency_rate": 0.5,
+  "retrieval_success_rate": 1,
+  "evidence_support_rate": 1,
+  "average_latency_ms": 12306,
+  "estimated_total_cost_cny": 0.13710167999999998,
+  "cases": [
+    {
+      "id": "dior-521",
+      "score": {
+        "id": "dior-521",
+        "fields": {
+          "brand": true,
+          "series": false,
+          "shade_code": true,
+          "color_family": false
+        },
+        "correct": 2,
+        "total": 4
+      },
+      "repeat_consistent": true,
+      "retrieval_succeeded": true,
+      "evidence_supported": true,
+      "runs": [
+        {
+          "duration_ms": 4572,
+          "input_tokens": 3772,
+          "output_tokens": 344,
+          "estimated_cost_cny": 0.01651968
+        },
+        {
+          "duration_ms": 3746,
+          "input_tokens": 3772,
+          "output_tokens": 363,
+          "estimated_cost_cny": 0.01668384
+        }
+      ]
+    },
+    {
+      "id": "chanel-69",
+      "score": {
+        "id": "chanel-69",
+        "fields": {
+          "brand": true,
+          "series": false,
+          "shade_code": true,
+          "color_family": true
+        },
+        "correct": 3,
+        "total": 4
+      },
+      "repeat_consistent": false,
+      "retrieval_succeeded": true,
+      "evidence_supported": true,
+      "runs": [
+        {
+          "duration_ms": 20892,
+          "input_tokens": 7072,
+          "output_tokens": 764,
+          "estimated_cost_cny": 0.03267648
+        },
+        {
+          "duration_ms": 6298,
+          "input_tokens": 2770,
+          "output_tokens": 314,
+          "estimated_cost_cny": 0.01409616
+        }
+      ]
+    },
+    {
+      "id": "mac-826",
+      "score": {
+        "id": "mac-826",
+        "fields": {
+          "brand": true,
+          "series": false,
+          "shade_code": true,
+          "color_family": true
+        },
+        "correct": 3,
+        "total": 4
+      },
+      "repeat_consistent": null,
+      "retrieval_succeeded": true,
+      "evidence_supported": true,
+      "runs": [
+        {
+          "duration_ms": 13622,
+          "input_tokens": 5911,
+          "output_tokens": 603,
+          "estimated_cost_cny": 0.028777680000000003
+        }
+      ]
+    },
+    {
+      "id": "3ce-speak-up",
+      "score": {
+        "id": "3ce-speak-up",
+        "fields": {
+          "brand": true,
+          "series": false,
+          "shade_code": false,
+          "color_family": true
+        },
+        "correct": 2,
+        "total": 4
+      },
+      "repeat_consistent": null,
+      "retrieval_succeeded": true,
+      "evidence_supported": true,
+      "runs": [
+        {
+          "duration_ms": 18475,
+          "input_tokens": 2770,
+          "output_tokens": 327,
+          "estimated_cost_cny": 0.01420848
+        }
+      ]
+    },
+    {
+      "id": "into-you-gw01",
+      "score": {
+        "id": "into-you-gw01",
+        "fields": {
+          "brand": true,
+          "series": false,
+          "shade_code": true,
+          "color_family": true
+        },
+        "correct": 3,
+        "total": 4
+      },
+      "repeat_consistent": null,
+      "retrieval_succeeded": true,
+      "evidence_supported": true,
+      "runs": [
+        {
+          "duration_ms": 18540,
+          "input_tokens": 2770,
+          "output_tokens": 319,
+          "estimated_cost_cny": 0.01413936
+        }
+      ]
+    }
+  ]
+}

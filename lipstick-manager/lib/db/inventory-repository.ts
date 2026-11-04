@@ -92,7 +92,10 @@ export class InventoryRepository {
       .eq("kind", "new")
       .maybeSingle<Draft>();
     if (error) throw new InventoryDependencyError();
-    return data;
+    if (!data) return null;
+    const { data: images, error: imageError } = await this.client.from("lipstick_images").select("id").eq("draft_id", data.id).eq("status", "temp").not("width", "is", null).order("position");
+    if (imageError) throw new InventoryDependencyError();
+    return { ...data, payload: { ...data.payload, image_ids: (images ?? []).map((image) => image.id), cover_image_id: images?.[0]?.id ?? null } };
   }
 
   async saveNewDraft(id: string, payload: DraftPayload): Promise<Draft | null> {

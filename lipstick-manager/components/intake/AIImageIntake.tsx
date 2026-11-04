@@ -11,9 +11,10 @@ type Props = {
   initialImageIds: string[];
   onImagesChange(ids: string[]): void;
   onApply(field: string, value: string | number | null, taskId: string): void;
+  confirmedIdentity: { brand: string | null; series: string | null; shade_code: string | null };
 };
 
-export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onApply }: Props) {
+export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onApply, confirmedIdentity }: Props) {
   const [images, setImages] = useState<Array<{ id: string; name: string; preview: string }>>(
     initialImageIds.map((id, index) => ({ id, name: `已上传图片 ${index + 1}`, preview: "" })),
   );
@@ -23,10 +24,21 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
   const [status, setStatus] = useState<string | null>(null);
   const [result, setResult] = useState<AIResult | null>(null);
   const [showConsent, setShowConsent] = useState(false);
+  const [ignored, setIgnored] = useState<string[]>([]);
   const pollRef = useRef<number | null>(null);
 
-  useEffect(() => () => { if (pollRef.current) window.clearTimeout(pollRef.current); }, []);
-  const updateImages = (next: typeof images) => { setImages(next); onImagesChange(next.map((image) => image.id)); };
+  useEffect(() => {
+    const savedTask = window.sessionStorage.getItem(`ai-task:${draftId}`);
+    const restoreTimer = savedTask ? window.setTimeout(() => { setTaskId(savedTask); void poll(savedTask); }, 0) : null;
+    return () => { if (restoreTimer) window.clearTimeout(restoreTimer); if (pollRef.current) window.clearTimeout(pollRef.current); };
+    // Restoring one persisted task is intentional; poll is stable for this mounted draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId]);
+  const updateImages = (next: typeof images) => {
+    setImages(next); setResult(null); setTaskId(null); setStatus(null); setIgnored([]);
+    window.sessionStorage.removeItem(`ai-task:${draftId}`);
+    onImagesChange(next.map((image) => image.id));
+  };
 
   async function addFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -38,11 +50,14 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
         const created = await fetch("/api/v1/uploads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file_name: file.name, mime_type: file.type, byte_size: file.size, draft_id: draftId }) });
         const createdBody = await created.json();
         if (!created.ok) throw new Error(createdBody.error?.field_errors?.image ?? createdBody.error?.message ?? "无法准备图片上传");
-        const upload = await fetch(createdBody.data.upload_url, { method: "PUT", headers: { "Content-Type": file.type, "x-upsert": "false" }, body: file });
-        if (!upload.ok) throw new Error("图片上传失败，请重试");
-        const completed = await fetch(`/api/v1/uploads/${createdBody.data.image_id}/complete`, { method: "POST" });
-        if (!completed.ok) { const body = await completed.json(); throw new Error(body.error?.message ?? "图片校验失败"); }
-        next.push({ id: createdBody.data.image_id, name: file.name, preview: URL.createObjectURL(file) });
+        const pendingImageId = String(createdBody.data.image_id);
+        try {
+          const upload = await fetch(createdBody.data.upload_url, { method: "PUT", headers: { "Content-Type": file.type, "x-upsert": "false" }, body: file });
+          if (!upload.ok) throw new Error("图片上传失败，请重试");
+          const completed = await fetch(`/api/v1/uploads/${pendingImageId}/complete`, { method: "POST" });
+          if (!completed.ok) { const body = await completed.json(); throw new Error(body.error?.message ?? "图片校验失败"); }
+          next.push({ id: pendingImageId, name: file.name, preview: URL.createObjectURL(file) });
+        } catch (cause) { await fetch(`/api/v1/uploads/${pendingImageId}`, { method: "DELETE" }); throw cause; }
       }
       updateImages(next);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "图片上传失败，请重试"); }
@@ -73,10 +88,10 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
     if (!consented && !confirmed) { setShowConsent(true); return; }
     if (confirmed) window.localStorage.setItem("ai-image-consent", aiConsentVersion);
     setShowConsent(false); setError(null); setResult(null); setStatus("queued");
-    const response = await fetch("/api/v1/ai/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draft_id: draftId, image_ids: images.map((image) => image.id), consent_version: aiConsentVersion, confirmed_identity: { brand: null, series: null, shade_code: null } }) });
+    const response = await fetch("/api/v1/ai/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draft_id: draftId, image_ids: images.map((image) => image.id), consent_version: aiConsentVersion, confirmed_identity: confirmedIdentity }) });
     const body = await response.json();
     if (!response.ok) { setStatus(null); setError(body.error?.field_errors?.ai ?? body.error?.message ?? "无法开始识别"); return; }
-    setTaskId(body.data.task_id); void poll(body.data.task_id);
+    setTaskId(body.data.task_id); window.sessionStorage.setItem(`ai-task:${draftId}`, body.data.task_id); void poll(body.data.task_id);
   }
 
   async function cancel() {
@@ -94,7 +109,7 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
       {showConsent ? <div className={styles.consent} role="alert"><strong>首次图片外传确认</strong><p>点击同意后，本次所选图片会发送至 DeepSeek 用于识别包装文字和产品信息。图片不会公开；你可以忽略全部建议并继续手填。</p><div><button type="button" onClick={() => void startRecognition(true)}>同意并开始识别</button><button type="button" className={styles.secondary} onClick={() => setShowConsent(false)}>暂不识别</button></div></div> : null}
       <div className={styles.controls}><button type="button" onClick={() => void startRecognition()} disabled={uploading || Boolean(status && ["queued", "recognizing", "researching"].includes(status))}>{status && ["queued", "recognizing", "researching"].includes(status) ? "正在识别…" : "开始识别"}</button>{status && ["queued", "recognizing", "researching"].includes(status) ? <button type="button" className={styles.secondary} onClick={() => void cancel()}>取消</button> : null}</div>
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
-      {result && applying ? <div className={styles.suggestions}><h3>识别建议</h3><p>逐项采用，不会自动覆盖你的输入。</p>{Object.entries(applying).filter(([, value]) => value !== null).map(([field, value]) => <div className={styles.suggestion} key={field}><span><strong>{fieldLabel(field)}</strong><small>{String(value)}</small></span><button type="button" onClick={() => onApply(field, value, result.task_id)}>采用</button></div>)}{result.evidence?.length ? <details><summary>查看证据（{result.evidence.length}）</summary><ul>{result.evidence.map((evidence) => <li key={evidence.id}>{evidence.url ? <a href={evidence.url} target="_blank" rel="noreferrer">{evidence.excerpt || evidence.url}</a> : evidence.excerpt || "来自上传图片"}</li>)}</ul></details> : null}</div> : null}
+      {result && applying ? <div className={styles.suggestions}><h3>识别建议</h3><p>逐项采用或忽略，不会自动覆盖你的输入。</p>{result.candidates.length > 1 ? <div className={styles.candidates}><strong>可能的产品</strong>{result.candidates.map((candidate) => <button type="button" key={candidate.label} onClick={() => { for (const field of ["brand", "series", "shade_code"] as const) if (candidate[field]) onApply(field, candidate[field], result.task_id); }}>{candidate.label}<small>{Math.round(candidate.confidence * 100)}%</small></button>)}</div> : null}{Object.entries(applying).filter(([field, value]) => value !== null && !ignored.includes(field)).map(([field, value]) => <div className={styles.suggestion} key={field}><span><strong>{fieldLabel(field)}</strong><small>{String(value)}</small></span><span className={styles.suggestionActions}><button type="button" onClick={() => onApply(field, value, result.task_id)}>采用</button><button type="button" onClick={() => setIgnored((current) => [...current, field])}>忽略</button></span></div>)}{result.evidence?.length ? <details><summary>查看证据（{result.evidence.length}）</summary><ul>{result.evidence.map((evidence) => <li key={evidence.id}>{evidence.url ? <a href={evidence.url} target="_blank" rel="noreferrer">{evidence.excerpt || evidence.url}</a> : evidence.excerpt || "来自上传图片"}</li>)}</ul></details> : null}</div> : null}
     </section>
   );
 }

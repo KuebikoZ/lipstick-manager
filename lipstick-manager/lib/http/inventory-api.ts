@@ -10,6 +10,7 @@ import {
 import { errorResponse } from "@/lib/http/api-response";
 import { allowedAppOrigins, hasValidOrigin } from "@/lib/http/origin";
 import { ImageUploadError } from "@/lib/services/upload-service";
+import { AIRateLimitError } from "@/lib/services/ai-task-service";
 
 export const uuidSchema = z.uuid();
 
@@ -57,6 +58,9 @@ export function inventoryErrorResponse(error: unknown): Response {
   }
   if (error instanceof ImageUploadError) {
     return errorResponse(error.status, error.code, error.message);
+  }
+  if (error instanceof AIRateLimitError) {
+    return errorResponse(429, "RATE_LIMITED", "识别请求过于频繁，请稍后再试");
   }
   return errorResponse(500, "INTERNAL_ERROR", "暂时无法完成操作");
 }

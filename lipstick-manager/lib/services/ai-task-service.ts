@@ -22,7 +22,7 @@ export class AITaskService {
     const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const recent = await this.client.from("ai_tasks").select("id", { count: "exact", head: true }).gte("created_at", since);
     if (recent.error) throw new InventoryDependencyError();
-    if ((recent.count ?? 0) >= 10) throw new InventoryValidationError({ ai: "识别请求过于频繁，请稍后再试" });
+    if ((recent.count ?? 0) >= 10) throw new AIRateLimitError();
     const { data: images, error } = await this.client.from("lipstick_images").select("id").eq("draft_id", parsed.data.draft_id).in("id", parsed.data.image_ids).not("width", "is", null);
     if (error) throw new InventoryDependencyError();
     if ((images ?? []).length !== parsed.data.image_ids.length) throw new InventoryValidationError({ image_ids: "图片不存在、未完成或不属于当前草稿" });
@@ -49,18 +49,26 @@ export class AITaskService {
         if (file.error || !file.data) throw new InventoryDependencyError();
         return { id: image.id, mimeType: image.mime_type, bytes: new Uint8Array(await file.data.arrayBuffer()) };
       }));
-      const providerResult = await new DeepSeekProvider(this.env).run(images);
+      const confirmedIdentity = taskResult.data.result?.confirmed_identity;
+      const providerResult = await new DeepSeekProvider(this.env).run(images, confirmedIdentity);
+      if (confirmedIdentity && typeof confirmedIdentity === "object") {
+        for (const field of ["brand", "series", "shade_code"] as const) {
+          if (typeof confirmedIdentity[field] === "string" && confirmedIdentity[field]) providerResult.result.identity[field] = confirmedIdentity[field];
+        }
+      }
       const current = await this.client.from("ai_tasks").select("status").eq("id", id).single();
       if (current.data?.status === "cancelled") return;
-      const evidence = providerResult.result.image_evidence.map((entry) => ({
+      const evidence: Array<Record<string, unknown>> = providerResult.result.image_evidence.map((entry) => ({
         ai_task_id: id, field_name: entry.field, kind: "image", image_id: images[entry.image_index]?.id, excerpt: entry.excerpt,
       })).filter((entry) => entry.image_id);
-      evidence.push(...providerResult.webEvidence.slice(0, 3).map((entry) => ({ ai_task_id: id, field_name: "identity", kind: "official", image_id: null, excerpt: entry.snippet?.slice(0, 500) ?? null, url: entry.url, retrieved_at: new Date().toISOString() })) as never[]);
+      const authorizedDomains = ["sephora.com", "sephora.cn", "tmall.com", "jd.com"];
+      evidence.push(...providerResult.webEvidence.filter((entry) => { try { const host = new URL(entry.url).hostname; return authorizedDomains.some((domain) => host === domain || host.endsWith(`.${domain}`)); } catch { return false; } }).slice(0, 3).map((entry) => ({ ai_task_id: id, field_name: "identity", kind: "authorized_store", image_id: null, excerpt: entry.snippet?.slice(0, 500) ?? null, url: entry.url, retrieved_at: new Date().toISOString() })));
       if (evidence.length) await this.client.from("evidence").insert(evidence);
       const evidenceRows = await this.client.from("evidence").select("id,field_name,kind,url,image_id,excerpt,retrieved_at").eq("ai_task_id", id);
+      const publicEvidence = (evidenceRows.data ?? []).map(({ field_name, ...entry }) => ({ ...entry, field: field_name }));
       await this.client.from("ai_tasks").update({
         status: providerResult.result.unresolved_fields.length ? "partial" : "complete",
-        result: { ...providerResult.result, evidence: evidenceRows.data ?? [] }, usage_json: providerResult.usage,
+        result: { ...providerResult.result, evidence: publicEvidence }, usage_json: providerResult.usage,
         duration_ms: Date.now() - started, updated_at: new Date().toISOString(),
       }).eq("id", id).neq("status", "cancelled");
     } catch (error) {
@@ -78,4 +86,8 @@ export class AITaskService {
     const result = await this.client.from("ai_tasks").update({ status: "cancelled", cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", id).in("status", ["queued", "recognizing", "needs_confirmation", "researching"]).select("id").maybeSingle();
     if (result.error) throw new InventoryDependencyError(); if (!result.data) throw new InventoryNotFoundError();
   }
+}
+
+export class AIRateLimitError extends Error {
+  constructor() { super("AI task rate limit exceeded"); }
 }

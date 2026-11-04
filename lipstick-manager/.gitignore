@@ -9,6 +9,8 @@ test-results/
 # local environment files
 .env*
 !.env.example
+inventory/evaluation/private/
+inventory/evaluation/*-report.json
 
 # local tooling and OS files
 .DS_Store

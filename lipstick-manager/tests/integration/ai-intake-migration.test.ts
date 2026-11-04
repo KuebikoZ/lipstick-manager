@@ -11,5 +11,7 @@ describe("AI intake migration", () => {
     expect(migration).toContain("status = 'temp' and width is not null");
     expect(migration).toContain("set item_id = created_item.id, draft_id = null, status = 'attached'");
     expect(migration).toContain("accepted_task_id");
+    expect(migration).toContain("input_image_ids <@ requested_image_ids");
+    expect(migration).toContain("delete from public.ai_tasks where draft_id = current_draft_id");
   });
 });

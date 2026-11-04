@@ -45,7 +45,7 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 const colorLabels: Record<ColorFamily, { name: string; help: string }> = {
-  nude: { name: "裸色系", help: "奶茶色、肉桂裸" },
+  nude: { name: "裸色系", help: "奶茶色、肉桂裸、桃色" },
   rose: { name: "豆沙色系", help: "豆沙色、玫瑰色" },
   orange: { name: "橘色系", help: "南瓜色、珊瑚色" },
   red: { name: "红色系", help: "番茄红、正红" },
@@ -266,6 +266,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         draftId={draft.id}
         initialImageIds={imageIds}
         onImagesChange={(ids) => { setImageIds(ids); setAcceptedTaskId(null); }}
+        confirmedIdentity={{ brand: textOrNull(watchedValues.brand ?? ""), series: textOrNull(watchedValues.series ?? ""), shade_code: textOrNull(watchedValues.shade_code ?? "") }}
         onApply={(field, value, taskId) => {
           const fieldName = field as keyof FormValues;
           if (!(fieldName in blankValues)) return;

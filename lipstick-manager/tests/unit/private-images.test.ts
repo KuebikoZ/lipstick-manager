@@ -32,6 +32,19 @@ describe("private image validation", () => {
     expect(new TextDecoder().decode(inspected.bytes)).not.toContain("GPS=secret");
   });
 
+  it("removes JPEG EXIF before hashing the persisted bytes", () => {
+    const jpeg = Uint8Array.from([
+      0xff, 0xd8,
+      0xff, 0xe1, 0x00, 0x08, 0x45, 0x78, 0x69, 0x66, 0x47, 0x50,
+      0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x03, 0x00, 0x02, 0x03, 1, 0x11, 0, 2, 0x11, 0, 3, 0x11, 0,
+      0xff, 0xda, 0x00, 0x02,
+    ]);
+    const inspected = sanitizeAndInspectImage(jpeg, "image/jpeg");
+    expect([inspected.width, inspected.height]).toEqual([2, 3]);
+    expect(new TextDecoder().decode(inspected.bytes)).not.toContain("ExifGP");
+    expect(inspected.sha256).toMatch(/^[a-f0-9]{64}$/);
+  });
+
   it("rejects MIME spoofing and oversized files", () => {
     expect(() =>
       validateImageFileHeader(Uint8Array.from([0xff, 0xd8, 0xff]), "image/png"),

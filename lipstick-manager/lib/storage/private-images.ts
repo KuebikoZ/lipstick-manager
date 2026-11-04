@@ -153,6 +153,7 @@ function stripWebpMetadata(bytes: Uint8Array): Uint8Array {
   const body = join(parts); const result = new Uint8Array(12 + body.length);
   result.set(bytes.slice(0, 12)); result.set(body, 12);
   new DataView(result.buffer).setUint32(4, result.length - 8, true);
+  if (new TextDecoder().decode(result.slice(12, 16)) === "VP8X") result[20] &= ~0x0c;
   return result;
 }
 
