@@ -86,3 +86,24 @@ button {
   font-weight: 700;
   letter-spacing: 0.16em;
 }
+
+.primary-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 20px;
+  padding: 0 18px;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.page-status {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--muted);
+}

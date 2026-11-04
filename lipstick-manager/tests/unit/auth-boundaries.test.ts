@@ -50,6 +50,28 @@ describe("authentication boundaries", () => {
     ).toBe(false);
   });
 
+  it("accepts the exact loopback origin used for a local request", () => {
+    expect(
+      hasValidOrigin(
+        new Request("http://localhost:3000/api/v1/drafts/example", {
+          headers: { origin: "http://127.0.0.1:3000" },
+        }),
+        "http://localhost:3000",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not allow an arbitrary host through the local exception", () => {
+    expect(
+      hasValidOrigin(
+        new Request("https://preview.example/api/v1/drafts/example", {
+          headers: { origin: "https://attacker.example" },
+        }),
+        "https://preview.example",
+      ),
+    ).toBe(false);
+  });
+
   it("maps login failures without revealing which credential was wrong", () => {
     expect(messageForLoginCode("credentials")).toBe("用户名或密码不正确");
     expect(messageForLoginCode("rate_limited")).toContain("15 分钟");

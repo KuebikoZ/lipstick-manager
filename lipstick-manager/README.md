@@ -21,7 +21,9 @@
    ```
 
 3. 将输出写入本地 `.env.local` 和 Vercel 服务端环境变量
-   `ADMIN_PASSWORD_HASH`，并同时配置 `APP_URL`、`AUTH_SECRET`、
+   `ADMIN_PASSWORD_HASH`。Next.js 会展开本地 env 文件中的 `$`，因此 `.env.local`
+   里的 Argon2id 哈希必须把每个 `$` 写成 `\$`；Vercel 控制台中的值保持原始
+   `$argon2id$...`，不要添加反斜杠。并同时配置 `APP_URL`、`AUTH_SECRET`、
    `ADMIN_USERNAME`、`SESSION_VERSION=1`。`AUTH_SECRET` 至少 32 个随机字符。
 4. 不要把密码明文、哈希或任何 secret 写入 `.env.example`、源码或 Git。
 
@@ -34,8 +36,11 @@
 
 1. `supabase/migrations/20261103220000_create_auth_login_attempts.sql`
 2. `supabase/migrations/20261104090000_create_inventory_domain.sql`
+3. `supabase/migrations/20261104130000_create_item_transaction.sql`
 
 第二个 migration 建立领域表、约束、RLS 和私有 `lipstick-images` bucket。
+第三个 migration 建立 T4 手工新增使用的原子事务函数：同一幂等键和相同请求会返回
+同一条库存记录；相同幂等键对应不同请求时会拒绝覆盖；保存成功后清理新建草稿。
 `.env.local` 中的 `SUPABASE_STORAGE_BUCKET` 必须为 `lipstick-images`。本期浏览器不持有
 Supabase key；所有数据库和对象操作必须在 Auth.js 会话校验后的服务端路径中使用
 `SUPABASE_SECRET_KEY`。不要在 T1–T10 对生产项目执行 migration。
