@@ -381,9 +381,17 @@ lipstick-manager/
 
 建议按 T1→T11 逐步完成；每阶段以当期可运行、可验证的完整功能为交付单位。任何模型异常都必须能回退到同一表单手工保存。T10/T11 中的数据导出指运维备份/恢复验证，不新增产品内导出功能。
 
-**当前进度（2026-11-03）**：T1 的本地运行、环境变量校验、错误页、健康检查、GitHub Actions、生产构建和 Vercel 部署均已通过，并已完成人工验收。T1 状态为 **已完成**，可以开始 T2。
+**当前进度（2026-11-04）**：
 
-T2 的固定账号登录、JWT 会话、页面/API 保护、安全头和 PostgreSQL 基础限流已完成代码实现与自动检查；真实 Supabase migration、固定凭据、Vercel 环境变量和完整登录流程仍待人工配置与验收，因此 T2 暂不标记完成。
+- T1 工程基线与部署骨架已完成本地、CI、Vercel 和人工验收。
+- T2 单用户登录与全站保护已完成，稳定版本为 `d7c446d6dbd697fb87bca5127b5ccf35eee3a41a`。
+- T3 数据库、私有图片与领域规则已完成自动检查、开发 Supabase 验证，以及真实手机和桌面端 Vercel Preview 人工验收。
+  - 稳定版本：`3935bfe13c89cd9203417aa7056bc73a33e285de`
+  - Preview：`https://lipstick-manager-git-feature-t3-database-domain-kbk10.vercel.app`
+  - 验收日期：`2026-11-04`
+  - 环境边界：使用 Vercel Preview 与开发 Supabase；未合并 `main`、未执行生产 migration、未触发 Production 部署。
+
+T3 状态为 **已完成**，下一阶段可开始 T4 手工新增与草稿保存。
 
 ## 7. 测试与验收
 
