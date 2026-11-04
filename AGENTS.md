@@ -26,7 +26,7 @@
 
 真实工程状态：T1 工程基线和 T2 单用户登录与全站保护已于 2026-11-03 通过本地、CI、Preview 和人工验收。T3 数据库结构、私有图片边界和期限/生命周期规则已于 2026-11-04 通过自动检查及开发 Supabase 人工验收。T4 手工新增与草稿保存已于 2026-11-04 通过本地自动检查，以及真实手机和桌面端 Vercel Preview 人工验收，稳定版本为 `0654116bd936098c8a3c01c9089db9bd2fd40731`；生产 migration 仍只允许在 T11 执行。当前使用 Node.js 22+、pnpm 11.25.0、Next.js 16、React 19、TypeScript 5.9、Zod 4、React Hook Form 7、ESLint 9 和 Vitest 5，实际版本以 `package.json` 和 `pnpm-lock.yaml` 为准。Testing Library 和 Playwright 尚未安装。新增依赖前说明用途，并确认现有依赖不能合理完成任务。不得为了未来需求增加 ORM、状态库、微服务、队列、Redis、角色系统或组件库。
 
-剩余开发按批次执行，当前下一任务是 T6：批次 A 为 T6→T7→T8，批次 B 为 T5→T9，批次 C 为 T10，批次 D 为 T11。每个批次内逐个 T 级任务开发、运行相关自动检查并创建 checkpoint commit；批次内不得因 checkpoint 提前要求人工验收。一个批次的全部任务完成后，才统一推送 GitHub、生成一次 Vercel Preview 并进行一次覆盖该批次的人工验收。T10 在 Preview 完成发布前整体验收；只有 T11 可以执行 Production 部署和生产环境验收。T1–T4 的既有完成状态、稳定版本和验收记录不得重新开发或覆盖。
+剩余开发按批次执行。批次 A（T6→T7→T8）已于 2026-11-04 通过真实手机和桌面端 Preview 人工验收，稳定版本为 `ab2789a7bce546a858b9b5895073c2885f6f4cef`；当前下一任务是批次 B 的 T5，随后执行 T9。批次 C 为 T10，批次 D 为 T11。每个批次内逐个 T 级任务开发、运行相关自动检查并创建 checkpoint commit；批次内不得因 checkpoint 提前要求人工验收。一个批次的全部任务完成后，才统一推送 GitHub、生成一次 Vercel Preview 并进行一次覆盖该批次的人工验收。T10 在 Preview 完成发布前整体验收；只有 T11 可以执行 Production 部署和生产环境验收。T1–T4 及批次 A 的既有完成状态、稳定版本和验收记录不得重新开发或覆盖。
 
 ## 3. 目录与模块规则
 

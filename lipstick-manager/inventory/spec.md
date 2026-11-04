@@ -402,8 +402,13 @@ T1–T4 已完成，不进入新的批次流程。剩余任务按以下顺序与
   - Preview：`https://lipstick-manager-git-feature-t4-manual-intake-kbk10.vercel.app`
   - 验收日期：`2026-11-04`
   - 环境边界：使用 Vercel Preview 与开发 Supabase；未合并 `main`、未执行生产 migration、未触发 Production 部署。
+- 批次 A（T6 库存列表、筛选排序与详情；T7 编辑与库存生命周期；T8 买前查一查）已完成自动检查，以及真实手机和桌面端 Vercel Preview 人工验收。
+  - 稳定版本：`ab2789a7bce546a858b9b5895073c2885f6f4cef`
+  - Preview：`https://lipstick-manager-git-feature-batch-a-inventory-kbk10.vercel.app`
+  - 验收日期：`2026-11-04`
+  - 环境边界：使用 Vercel Preview 与开发 Supabase；未合并 `main`、未执行生产 migration、未触发 Production 部署。
 
-T4 状态为 **已完成**。按照剩余批次顺序，当前下一开发任务为 **T6 库存列表、筛选排序与详情**。
+T1–T4 及批次 A 状态为 **已完成**。按照剩余批次顺序，当前下一开发任务为 **T5 AI 图片识别基础闭环**，随后在同一批次执行 T9。
 
 ## 7. 测试与验收
 
