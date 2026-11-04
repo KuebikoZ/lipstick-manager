@@ -15,7 +15,7 @@ export function InventoryView({ data, query }: { data: InventoryListResult; quer
   const filtered = Boolean(query.life || query.time || query.color || query.brand);
   const returnTo = `/inventory${params(query) ? `?${params(query)}` : ""}`;
   return <main className={styles.shell}>
-    <header className={styles.header}><div><p>YOUR PERSONAL COLLECTION</p><h1>我的口红柜</h1><span>让每一抹喜欢，都被好好记得。</span></div><Link className={styles.primary} href="/inventory/new">＋ 录入口红</Link></header>
+    <header className={styles.header}><div><p>YOUR PERSONAL COLLECTION</p><h1>我的口红柜</h1><span>让每一抹喜欢，都被好好记得。</span></div><nav><Link href="/compare">买前查一查</Link><Link className={styles.primary} href="/inventory/new">＋ 录入口红</Link></nav></header>
     <section className={styles.stats} aria-label="库存概览">
       <Link href="/inventory"><span>当前持有</span><strong>{data.summary.current}</strong><small>支</small></Link>
       <Link href="/inventory?life=opened"><span>已开封</span><strong>{data.summary.opened}</strong><small>支</small></Link>

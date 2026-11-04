@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { InventoryStore } from "@/lib/db/inventory-repository";
 import type { Draft, LipstickItem } from "@/lib/domain/item";
-import { InventoryService, InventoryValidationError } from "@/lib/services/inventory-service";
+import { InventoryService, InventoryValidationError, RevisionConflictError } from "@/lib/services/inventory-service";
 
 const draft: Draft = {
   id: "c085b980-b24d-4d85-884d-42acf1bf7652",
@@ -14,7 +14,7 @@ const draft: Draft = {
   expires_at: "2027-02-02T00:00:00.000Z",
 };
 
-const item = { id: "4cf43d3d-f005-49cc-b03a-32f05dcaa735" } as LipstickItem;
+const item = { id: "4cf43d3d-f005-49cc-b03a-32f05dcaa735", revision: 1 } as LipstickItem;
 
 function createStore(): InventoryStore {
   return {
@@ -92,5 +92,23 @@ describe("inventory service", () => {
       name: "InventoryNotFoundError",
     });
     expect(store.getItem).not.toHaveBeenCalled();
+  });
+
+  it("combines inventory filters while keeping the unfiltered summary", async () => {
+    const store = createStore();
+    const rose = { ...item, lifecycle: "opened", color_family: "rose", brand: "甲", deadline_status: "days_1_30", days_left: 10, deadline: "2026-11-14", created_at: "2026-11-01" } as LipstickItem;
+    const nude = { ...item, id: "5cf43d3d-f005-49cc-b03a-32f05dcaa735", lifecycle: "unopened", color_family: "nude", brand: "乙", deadline_status: "unknown", days_left: null, deadline: null, created_at: "2026-11-02" } as LipstickItem;
+    vi.mocked(store.listCurrentItems).mockResolvedValue([nude, rose]);
+    const result = await new InventoryService(store).listItems({ life: "opened", color: "rose", time: "days_0_30" });
+    expect(result.items.map((entry) => entry.id)).toEqual([rose.id]);
+    expect(result.summary).toEqual({ current: 2, opened: 1, due_0_30: 1 });
+    expect(result.brands).toEqual(["甲", "乙"]);
+  });
+
+  it("rejects an edit made from a stale revision", async () => {
+    const store = createStore();
+    const service = new InventoryService(store);
+    await expect(service.updateItem(item.id, 2, validInput)).rejects.toBeInstanceOf(RevisionConflictError);
+    expect(store.updateItem).not.toHaveBeenCalled();
   });
 });
