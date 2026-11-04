@@ -8,6 +8,22 @@ import {
 } from "@/lib/http/inventory-api";
 import { createInventoryService } from "@/lib/services/service-factory";
 
+export async function GET(request: Request): Promise<Response> {
+  if (!(await getValidSession())) return errorResponse(401, "UNAUTHORIZED", "请先登录");
+  try {
+    const params = new URL(request.url).searchParams;
+    return dataResponse(await createInventoryService().listItems({
+      life: params.get("life") ?? undefined,
+      time: params.get("time") ?? undefined,
+      color: params.get("color") ?? undefined,
+      brand: params.get("brand") ?? undefined,
+      sort: params.get("sort") ?? undefined,
+    }));
+  } catch (error) {
+    return inventoryErrorResponse(error);
+  }
+}
+
 export async function POST(request: Request): Promise<Response> {
   if (!(await getValidSession())) return errorResponse(401, "UNAUTHORIZED", "请先登录");
   const originError = invalidOriginResponse(request);

@@ -24,6 +24,7 @@ function createStore(): InventoryStore {
     deleteNewDraft: vi.fn().mockResolvedValue(true),
     createItem: vi.fn().mockResolvedValue(item),
     getItem: vi.fn().mockResolvedValue(item),
+    listCurrentItems: vi.fn().mockResolvedValue([]),
   };
 }
 

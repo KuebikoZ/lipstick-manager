@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Draft, LipstickItem } from "@/lib/domain/item";
+import type { Draft, ItemImage, LipstickItem } from "@/lib/domain/item";
 import type { DraftPayload, ItemWriteInput } from "@/lib/domain/item-schema";
 import { calculateDeadline } from "@/lib/domain/deadline";
 import { localToday } from "@/lib/domain/local-date";
@@ -13,6 +13,7 @@ type ItemRow = Omit<
   | "deadline_basis"
   | "days_left"
   | "deadline_status"
+  | "images"
 >;
 
 export class InventoryDependencyError extends Error {
@@ -32,6 +33,7 @@ export class IdempotencyConflictError extends Error {
 function withDeadline(row: ItemRow): LipstickItem {
   return {
     ...row,
+    images: [],
     ...calculateDeadline(
       {
         lifecycle: row.lifecycle,
@@ -48,7 +50,22 @@ function withDeadline(row: ItemRow): LipstickItem {
 }
 
 export class InventoryRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly bucket: string) {}
+
+  private async signedImages(itemId: string): Promise<ItemImage[]> {
+    const { data, error } = await this.client
+      .from("lipstick_images")
+      .select("id,storage_path,position")
+      .eq("item_id", itemId)
+      .eq("status", "attached")
+      .order("position");
+    if (error) throw new InventoryDependencyError();
+    return Promise.all((data ?? []).map(async (image) => {
+      const signed = await this.client.storage.from(this.bucket).createSignedUrl(image.storage_path, 300);
+      if (signed.error || !signed.data?.signedUrl) throw new InventoryDependencyError();
+      return { id: image.id, url: signed.data.signedUrl, position: image.position };
+    }));
+  }
 
   async getOrCreateNewDraft(): Promise<Draft> {
     const existing = await this.getCurrentNewDraft();
@@ -149,7 +166,20 @@ export class InventoryRepository {
       .neq("lifecycle", "discarded")
       .maybeSingle<ItemRow>();
     if (error) throw new InventoryDependencyError();
-    return data ? withDeadline(data) : null;
+    if (!data) return null;
+    return { ...withDeadline(data), images: await this.signedImages(id) };
+  }
+
+  async listCurrentItems(): Promise<LipstickItem[]> {
+    const { data, error } = await this.client
+      .from("lipstick_items")
+      .select("*")
+      .neq("lifecycle", "discarded");
+    if (error) throw new InventoryDependencyError();
+    return Promise.all((data ?? []).map(async (row) => ({
+      ...withDeadline(row as ItemRow),
+      images: await this.signedImages((row as ItemRow).id),
+    })));
   }
 }
 
@@ -161,4 +191,5 @@ export type InventoryStore = Pick<
   | "deleteNewDraft"
   | "createItem"
   | "getItem"
+  | "listCurrentItems"
 >;

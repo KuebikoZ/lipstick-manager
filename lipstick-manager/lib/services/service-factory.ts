@@ -4,6 +4,7 @@ import { InventoryRepository } from "@/lib/db/inventory-repository";
 import { InventoryService } from "@/lib/services/inventory-service";
 
 export function createInventoryService(): InventoryService {
-  const client = createSupabaseAdminClient(parseSupabaseEnv(process.env));
-  return new InventoryService(new InventoryRepository(client));
+  const env = parseSupabaseEnv(process.env);
+  const client = createSupabaseAdminClient(env);
+  return new InventoryService(new InventoryRepository(client, env.SUPABASE_STORAGE_BUCKET));
 }

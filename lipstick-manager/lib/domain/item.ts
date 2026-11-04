@@ -29,7 +29,18 @@ export type LipstickItem = {
   cover_image_id: string | null;
   created_at: string;
   updated_at: string;
+  images: ItemImage[];
 } & DeadlineResult;
+
+export type ItemImage = { id: string; url: string; position: number };
+
+export type InventorySummary = { current: number; opened: number; due_0_30: number };
+export type InventoryListResult = {
+  items: LipstickItem[];
+  summary: InventorySummary;
+  brands: string[];
+  next_cursor: string | null;
+};
 
 export type Draft = {
   id: string;
