@@ -4,6 +4,7 @@ import { addCalendarMonths, type LocalDate } from "@/lib/domain/local-date";
 export type DateValidationError =
   | "OPENED_ON_IN_FUTURE"
   | "MANUFACTURED_ON_IN_FUTURE"
+  | "MANUFACTURED_AFTER_EXPIRY"
   | "OPENED_AFTER_EXPIRY";
 
 export function validateDeadlineDates(
@@ -20,6 +21,9 @@ export function validateDeadlineDates(
       ? addCalendarMonths(input.manufactured_on, input.shelf_life_months)
       : null;
   const effectiveExpiry = input.expires_on ?? calculatedExpiry;
+  if (input.manufactured_on && input.expires_on && input.manufactured_on > input.expires_on) {
+    errors.push("MANUFACTURED_AFTER_EXPIRY");
+  }
   if (input.opened_on && effectiveExpiry && input.opened_on > effectiveExpiry) {
     errors.push("OPENED_AFTER_EXPIRY");
   }

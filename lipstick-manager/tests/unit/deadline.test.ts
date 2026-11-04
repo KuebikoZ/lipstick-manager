@@ -90,6 +90,7 @@ describe("deadline rules", () => {
     ).toEqual([
       "OPENED_ON_IN_FUTURE",
       "MANUFACTURED_ON_IN_FUTURE",
+      "MANUFACTURED_AFTER_EXPIRY",
       "OPENED_AFTER_EXPIRY",
     ]);
   });

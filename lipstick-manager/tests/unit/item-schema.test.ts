@@ -78,6 +78,21 @@ describe("item write schema", () => {
     }
   });
 
+  it("rejects a manufacture date later than the explicit expiry date", () => {
+    const result = createItemWriteSchema("2026-11-04").safeParse({
+      ...validInput,
+      manufactured_on: "2026-10-02",
+      expires_on: "2026-10-01",
+      expiry_source: "explicit",
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.manufactured_on).toContain(
+        "生产日期不能晚于实物到期日",
+      );
+    }
+  });
+
   it("accepts incomplete but bounded draft content", () => {
     expect(
       draftPayloadSchema.safeParse({ display_name: "", color_family_confirmed: false }).success,

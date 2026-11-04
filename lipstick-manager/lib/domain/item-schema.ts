@@ -89,6 +89,12 @@ export function createItemWriteSchema(today: LocalDate) {
           path: ["manufactured_on"],
           message: "生产日期不能晚于今天",
         });
+      } else if (error === "MANUFACTURED_AFTER_EXPIRY") {
+        context.addIssue({
+          code: "custom",
+          path: ["manufactured_on"],
+          message: "生产日期不能晚于实物到期日",
+        });
       } else {
         context.addIssue({
           code: "custom",

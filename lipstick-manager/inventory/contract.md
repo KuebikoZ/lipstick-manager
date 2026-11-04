@@ -126,7 +126,7 @@ EvidenceKind = image | official | authorized_store | user
 | `opened_on` | LocalDate/null | `null` | 仅用户确认；不得晚于 today |
 | `opening_precision` | OpeningPrecision | `unknown` | `opened_on!=null` 时必须为 exact |
 | `pao_months` | integer/null | `null` | 1–120；只在 opened 状态参与截止计算 |
-| `manufactured_on` | LocalDate/null | `null` | 不得晚于 today；不可由批号猜测 |
+| `manufactured_on` | LocalDate/null | `null` | 不得晚于 today 或 expires_on；不可由批号猜测 |
 | `shelf_life_months` | integer/null | `null` | 1–240；不等同 PAO |
 | `expires_on` | LocalDate/null | `null` | 当前实物明确日期或经用户确认的推算日期 |
 | `expiry_source` | ExpirySource/null | `null` | expires_on 非空时必填；为空时必须 null |
