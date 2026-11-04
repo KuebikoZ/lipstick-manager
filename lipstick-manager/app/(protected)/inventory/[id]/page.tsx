@@ -5,6 +5,7 @@ import { requirePageSession } from "@/lib/auth/session";
 import { InventoryNotFoundError } from "@/lib/services/inventory-service";
 import { createInventoryService } from "@/lib/services/service-factory";
 import styles from "./page.module.css";
+import { ItemActions } from "@/components/inventory/ItemActions";
 
 export default async function InventoryDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ returnTo?: string }> }) {
   await requirePageSession();
@@ -36,6 +37,7 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
           <Link href="/inventory/new">继续新增</Link>
           <Link href={returnTo}>返回列表</Link>
         </div>
+        <ItemActions id={item.id} revision={item.revision}/>
         <p className={styles.note}>日期仅用于管理提醒，不代表实物品质检测。</p>
       </article>
     </main>

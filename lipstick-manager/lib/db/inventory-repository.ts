@@ -29,6 +29,7 @@ export class IdempotencyConflictError extends Error {
     this.name = "IdempotencyConflictError";
   }
 }
+export class RevisionConflictError extends Error {}
 
 function withDeadline(row: ItemRow): LipstickItem {
   return {
@@ -181,6 +182,30 @@ export class InventoryRepository {
       images: await this.signedImages((row as ItemRow).id),
     })));
   }
+
+  async updateItem(id: string, revision: number, input: ItemWriteInput): Promise<LipstickItem | null> {
+    const fields = { display_name: input.display_name, brand: input.brand, series: input.series, shade_code: input.shade_code, color_family: input.color_family, color_description: input.color_description, texture: input.texture, lifecycle: input.lifecycle, opened_on: input.opened_on, opening_precision: input.opening_precision, pao_months: input.pao_months, manufactured_on: input.manufactured_on, shelf_life_months: input.shelf_life_months, expires_on: input.expires_on, expiry_source: input.expiry_source, note: input.note, cover_image_id: input.cover_image_id };
+    const { data, error } = await this.client.from("lipstick_items").update({ ...fields, revision: revision + 1, updated_at: new Date().toISOString() }).eq("id", id).eq("revision", revision).neq("lifecycle", "discarded").select("*").maybeSingle<ItemRow>();
+    if (error) throw new InventoryDependencyError();
+    return data ? { ...withDeadline(data), images: await this.signedImages(id) } : null;
+  }
+
+  async discardItem(id: string, revision: number): Promise<LipstickItem | null> {
+    const { data, error } = await this.client.from("lipstick_items").update({ lifecycle: "discarded", revision: revision + 1, updated_at: new Date().toISOString() }).eq("id", id).eq("revision", revision).neq("lifecycle", "discarded").select("*").maybeSingle<ItemRow>();
+    if (error) throw new InventoryDependencyError();
+    return data ? withDeadline(data) : null;
+  }
+
+  async deleteItem(id: string, revision: number): Promise<boolean> {
+    const { data: images, error: imageError } = await this.client.from("lipstick_images").select("storage_path").eq("item_id", id);
+    if (imageError) throw new InventoryDependencyError();
+    const { data, error } = await this.client.from("lipstick_items").delete().eq("id", id).eq("revision", revision).select("id");
+    if (error) throw new InventoryDependencyError();
+    if (!data?.length) return false;
+    const paths = (images ?? []).map((image) => image.storage_path);
+    if (paths.length) await this.client.storage.from(this.bucket).remove(paths);
+    return true;
+  }
 }
 
 export type InventoryStore = Pick<
@@ -192,4 +217,7 @@ export type InventoryStore = Pick<
   | "createItem"
   | "getItem"
   | "listCurrentItems"
+  | "updateItem"
+  | "discardItem"
+  | "deleteItem"
 >;

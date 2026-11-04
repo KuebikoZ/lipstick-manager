@@ -11,6 +11,7 @@ import { localToday } from "@/lib/domain/local-date";
 import { z } from "zod";
 import {
   IdempotencyConflictError,
+  RevisionConflictError,
   type InventoryStore,
 } from "@/lib/db/inventory-repository";
 
@@ -29,6 +30,7 @@ export class InventoryNotFoundError extends Error {
 }
 
 export { IdempotencyConflictError };
+export { RevisionConflictError };
 
 function fieldErrorsFromIssues(
   issues: ReadonlyArray<{ path: PropertyKey[]; message: string }>,
@@ -130,6 +132,30 @@ export class InventoryService {
       brands: [...new Set(all.flatMap((item) => item.brand ? [item.brand] : []))].sort((a, b) => a.localeCompare(b, "zh-CN")),
       next_cursor: null,
     };
+  }
+
+  async updateItem(id: string, revision: number, rawInput: unknown): Promise<LipstickItem> {
+    if (!z.uuid().safeParse(id).success || !Number.isInteger(revision) || revision < 1) throw new InventoryNotFoundError();
+    const parsed = createItemWriteSchema(localToday()).safeParse(rawInput);
+    if (!parsed.success) throw new InventoryValidationError(fieldErrorsFromIssues(parsed.error.issues));
+    const current = await this.getItem(id);
+    if (current.revision !== revision) throw new RevisionConflictError();
+    const updated = await this.repository.updateItem(id, revision, parsed.data);
+    if (!updated) throw new RevisionConflictError();
+    return updated;
+  }
+
+  async discardItem(id: string, revision: number): Promise<LipstickItem> {
+    const current = await this.getItem(id);
+    if (current.revision !== revision) throw new RevisionConflictError();
+    const updated = await this.repository.discardItem(id, revision);
+    if (!updated) throw new RevisionConflictError();
+    return updated;
+  }
+
+  async deleteItem(id: string, revision: number): Promise<void> {
+    const current = await this.getItem(id);
+    if (current.revision !== revision || !(await this.repository.deleteItem(id, revision))) throw new RevisionConflictError();
   }
 }
 

@@ -5,6 +5,7 @@ import {
   IdempotencyConflictError,
   InventoryNotFoundError,
   InventoryValidationError,
+  RevisionConflictError,
 } from "@/lib/services/inventory-service";
 import { errorResponse } from "@/lib/http/api-response";
 import { allowedAppOrigins, hasValidOrigin } from "@/lib/http/origin";
@@ -46,6 +47,9 @@ export function inventoryErrorResponse(error: unknown): Response {
   }
   if (error instanceof IdempotencyConflictError) {
     return errorResponse(409, "IDEMPOTENCY_CONFLICT", "保存请求与先前请求不一致，请重新提交");
+  }
+  if (error instanceof RevisionConflictError) {
+    return errorResponse(409, "REVISION_CONFLICT", "记录已在其他页面更新，请重新载入后再试");
   }
   if (error instanceof InventoryDependencyError) {
     return errorResponse(503, "DEPENDENCY_UNAVAILABLE", "数据服务暂时不可用，请稍后重试");
