@@ -23,7 +23,7 @@ export function ProductCover({ imageUrl, name, colorFamily, variant = "card" }: 
   return (
     <div className={`${styles.cover} ${variant === "detail" ? styles.detail : styles.card}`} style={{ "--lipstick-color": lipstickColors[colorFamily ?? "rose"] } as CSSProperties}>
       {imageUrl ? (
-        <Image src={imageUrl} alt={`${name}产品封面`} fill sizes={variant === "detail" ? "(max-width: 720px) 100vw, 632px" : "(max-width: 767px) 96px, 128px"} unoptimized />
+        <Image src={imageUrl} alt={`${name}产品封面`} fill priority={variant === "detail"} sizes={variant === "detail" ? "(max-width: 720px) 100vw, 632px" : "(max-width: 767px) 96px, 128px"} unoptimized />
       ) : (
         <div className={styles.illustration} role="img" aria-label="默认口红封面插画">
           <span className={styles.lipstick} />
