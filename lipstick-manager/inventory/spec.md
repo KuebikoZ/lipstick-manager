@@ -63,10 +63,10 @@
 | 表单/校验 | React Hook Form + Zod | 前后端复用字段约束；处理条件字段和就近错误 |
 | 服务端数据访问 | Supabase JS Server Client | 连接托管 PostgreSQL 与私有 Storage；不在浏览器暴露 secret key |
 | 数据库 | Supabase PostgreSQL（Free） | 初期开发无需维护数据库主机，可验证服务端持久化；不承诺长期在线或生产级备份 |
-| 图片 | Supabase Storage 私有 bucket | 不把图片塞入数据库或 localStorage；通过短期签名 URL 展示 |
+| 图片 | Supabase Storage 私有 bucket | 不把图片塞入数据库或 localStorage；上传前压缩至最长边 1600px、JPEG 质量约 0.80，通过短期签名 URL 展示 |
 | 登录 | Auth.js Credentials + JWT 会话 | 单固定用户，无注册流程和用户表也可工作；页面/API 共用服务端会话校验 |
 | AI | DeepSeek API 服务端 Adapter | `deepseek-flash`（V4.1 Flash）负责图片识别和结构化输出；DeepSeek Search/Fetch API 负责资料检索；密钥只留在服务端 |
-| 部署 | Vercel + Supabase | 自动 HTTPS、部署步骤少、适合个人低流量 MVP；Supabase 选新加坡区域 |
+| 部署 | Vercel + Supabase | 自动 HTTPS、部署步骤少、适合个人低流量 MVP；Supabase 选新加坡区域，图片上传与 AI Route Handler 优先运行在 Vercel 新加坡 `sin1` 区域 |
 | 测试 | Vitest + Testing Library + Playwright | 覆盖日期规则、接口、关键页面与手机视口端到端流程 |
 
 不选择纯静态站点加 `localStorage`，因为无法满足服务端密钥、可靠持久化和受保护数据接口；不拆微服务、消息队列或独立搜索服务，因为单用户 MVP 没有对应复杂度。
@@ -91,7 +91,7 @@
 - 登录限流使用现有 PostgreSQL 中的最小 `auth_login_attempts` 表持久化计数，不引入 Redis 或独立限流服务。表只保存 IP HMAC、用户名 HMAC、窗口、失败次数和锁定时间，不保存明文 IP、用户名或密码。
 - 会话 Cookie 使用 `HttpOnly`、`Secure`、`SameSite=Lax`，建议 30 天失效；修改密码/密钥后通过递增 `SESSION_VERSION` 使旧会话失效。
 - 所有变更接口只接受同源请求；校验 `Origin`，使用 Auth.js 自带 CSRF 保护处理登录。设置 CSP、`X-Content-Type-Options: nosniff`、`Referrer-Policy: same-origin`、`frame-ancestors 'none'`。
-- Storage bucket 为 private。客户端不获得 Supabase secret key；图片读取由服务端生成 5–10 分钟签名 URL，上传采用服务端校验后的短期签名上传或小文件直传 Route Handler。
+- Storage bucket 为 private。客户端不获得 Supabase secret key；图片读取由服务端生成 5–10 分钟签名 URL。上传前在浏览器移除 EXIF 并压缩大图，服务端顺序预留位置后由浏览器并行直传 Storage，再由同区域 Route Handler 下载压缩图进行文件头、尺寸和哈希校验。
 - AI 请求、数据库、Storage 和错误日志均不得记录登录密码、原图、备注或完整模型提示。外部网页/图片文字一律作为不可信数据，不可改变工具权限。
 - `/api/health` 只返回应用是否存活，不检查或泄露数据库、密钥和版本细节。其余 `/api/**` 全部要求会话。
 
@@ -124,7 +124,7 @@
 - `AppHeader`：品牌、两项主导航、退出登录；移动端转为底部固定导航，避免挤压标题。
 - `InventorySummary`：当前持有、已开封、30 天内到期三个可点击统计。
 - `InventoryFilters`：期限状态、开封状态、色系、品牌四项筛选，以及最近录入/到期日期优先/按品牌/按色系四项排序；交互和排列以最新原型为准。
-- `LipstickCard`：封面、名称、品牌/色号、色系、质地、生命周期、期限标签。
+- `LipstickCard`：封面、品牌-系列-色号组合名称、色系、质地、生命周期、期限标签；不重复显示独立品牌行。
 - `ColorFamilySelector` / `ColorFamilyGroup`：全部与六色系固定顺序；待分类单独入口。
 - `ImageUploader`：文件选择/拍照、预览、删除、封面排序、上传进度与错误。
 - `LipstickForm`：开封信息、身份、色系、质地、日期、备注；新增和编辑复用。
@@ -182,7 +182,8 @@
 | `id` | uuid PK | 单支实物 |
 | `revision` | int not null default 1 | 乐观锁，每次成功更新 +1 |
 | `display_name` | varchar(100) not null | 由品牌、系列、色号按顺序以 `-` 连接生成；均为空时为“信息待补充”，仅作为兼容存储字段，不单独录入 |
-| `brand`,`series`,`shade_code` | varchar(100) null | 产品身份 |
+| `brand`,`shade_code` | varchar(100) null | 产品身份 |
+| `series` | varchar(100) null | 接口和 UI 最多 50 字；保存与展示时去掉开头重复品牌名 |
 | `color_family` | enum null | 六色系；null=待分类 |
 | `color_description` | varchar(200) null | 颜色描述 |
 | `texture` | varchar(200) null | 仅允许哑光、丝绒、缎光、水光、镜面、其他 |

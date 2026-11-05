@@ -9,7 +9,7 @@ export const aiSchemaVersion = "2";
 const nullableShortText = z.string().trim().max(200).nullable();
 export const aiIdentitySchema = z.object({
   brand: z.string().trim().max(100).nullable(),
-  series: z.string().trim().max(100).nullable(),
+  series: z.string().trim().max(50).nullable(),
   shade_code: z.string().trim().max(100).nullable(),
 });
 export const aiSuggestionsSchema = z.object({

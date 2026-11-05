@@ -17,7 +17,7 @@ export const itemWriteObjectSchema = z
   .object({
     display_name: z.string().trim().min(1).max(100),
     brand: nullableText(100),
-    series: nullableText(100),
+    series: nullableText(50),
     shade_code: nullableText(100),
     color_family: colorFamilySchema.nullable(),
     color_family_confirmed: z.boolean(),

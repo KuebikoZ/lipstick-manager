@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { requirePageSession } from "@/lib/auth/session";
 import { InventoryNotFoundError } from "@/lib/services/inventory-service";
@@ -18,9 +17,6 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
     <main className={styles.shell}>
       <article className={styles.card}>
         <Link className={styles.back} href={returnTo}>← 返回{returnTo.startsWith("/compare") ? "买前查一查" : "口红柜"}</Link>
-        {item.images[0] && (
-          <Image unoptimized className={styles.cover} width={632} height={480} src={item.images[0].url} alt={`${displayName}实拍`}/>
-        )}
         <h1>{displayName}</h1>
         <dl>
           <div><dt>品牌</dt><dd>{item.brand ?? "未记录"}</dd></div>

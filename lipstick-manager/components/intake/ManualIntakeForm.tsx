@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import type { Draft } from "@/lib/domain/item";
-import { buildDisplayName } from "@/lib/domain/display-name";
+import { buildDisplayName, normalizeSeries } from "@/lib/domain/display-name";
 import { colorFamilies, textures, type ColorFamily, type Lifecycle } from "@/lib/domain/inventory";
 import type { ItemWriteInput } from "@/lib/domain/item-schema";
 import { AIImageIntake } from "./AIImageIntake";
@@ -23,7 +23,7 @@ const optionalInteger = (maximum: number) =>
 const formSchema = z
   .object({
     brand: z.string().max(100, "最多 100 个字符"),
-    series: z.string().max(100, "最多 100 个字符"),
+    series: z.string().max(50, "最多 50 个字符"),
     shade_code: z.string().max(100, "最多 100 个字符"),
     color_family: z.enum([...colorFamilies, "pending", ""]),
     color_description: z.string().max(200, "最多 200 个字符"),
@@ -83,7 +83,7 @@ function toItemInput(values: FormValues, imageIds: string[] = [], acceptedTaskId
   return {
     display_name: buildDisplayName(values),
     brand: textOrNull(values.brand),
-    series: textOrNull(values.series),
+    series: normalizeSeries(values.brand, values.series),
     shade_code: textOrNull(values.shade_code),
     color_family: values.color_family === "pending" ? null : (values.color_family as ColorFamily),
     color_family_confirmed: Boolean(values.color_family),
@@ -285,7 +285,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         draftId={draft.id}
         initialImageIds={imageIds}
         onImagesChange={(ids) => { setImageIds(ids); setAcceptedTaskId(null); }}
-        confirmedIdentity={{ brand: textOrNull(watchedValues.brand ?? ""), series: textOrNull(watchedValues.series ?? ""), shade_code: textOrNull(watchedValues.shade_code ?? "") }}
+        confirmedIdentity={{ brand: textOrNull(watchedValues.brand ?? ""), series: normalizeSeries(watchedValues.brand, watchedValues.series), shade_code: textOrNull(watchedValues.shade_code ?? "") }}
         onApply={(field, value, taskId) => {
           const fieldName = field as keyof FormValues;
           if (!(fieldName in blankValues)) return;
@@ -321,7 +321,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         <legend>产品信息</legend>
         <div className={styles.twoColumns}>
           <Field label="品牌" error={errors.brand?.message}><input maxLength={100} {...register("brand")} /></Field>
-          <Field label="系列" error={errors.series?.message}><input maxLength={100} {...register("series")} /></Field>
+          <Field label="系列" error={errors.series?.message}><input maxLength={50} {...register("series")} /></Field>
         </div>
         <Field label="色号" error={errors.shade_code?.message}><input maxLength={100} {...register("shade_code")} /></Field>
       </fieldset>

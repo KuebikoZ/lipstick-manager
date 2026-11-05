@@ -1,5 +1,6 @@
 import type { AIEnv } from "@/lib/config/env";
 import { aiModelResultSchema, type AIModelResult } from "@/lib/domain/ai-intake";
+import { normalizeSeries } from "@/lib/domain/display-name";
 
 export class AIProviderError extends Error {
   constructor(public code: "DEPENDENCY_UNAVAILABLE" | "AI_OUTPUT_INVALID" | "TIMED_OUT", public diagnostic?: unknown) { super(code); }
@@ -95,7 +96,18 @@ export class DeepSeekProvider {
     }
     const validated = aiModelResultSchema.safeParse(parsed);
     if (!validated.success) throw new AIProviderError("AI_OUTPUT_INVALID", { output_length: text.length, issues: validated.error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })) });
-    return { result: validated.data, usage: response.usage ?? null };
+    const result = {
+      ...validated.data,
+      identity: {
+        ...validated.data.identity,
+        series: normalizeSeries(validated.data.identity.brand, validated.data.identity.series),
+      },
+      candidates: validated.data.candidates.map((candidate) => ({
+        ...candidate,
+        series: normalizeSeries(candidate.brand, candidate.series),
+      })),
+    };
+    return { result, usage: response.usage ?? null };
   }
 
   async run(images: ImageInput[], confirmedIdentity?: { brand: string | null; series: string | null; shade_code: string | null }) {

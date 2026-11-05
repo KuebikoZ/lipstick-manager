@@ -1,5 +1,5 @@
-const maxUploadEdge = 2048;
-const compressionThreshold = 1_500_000;
+const maxUploadEdge = 1600;
+const compressionThreshold = 700_000;
 
 export async function prepareImageForUpload(file: File): Promise<File> {
   if (file.size <= compressionThreshold) return file;
@@ -19,7 +19,7 @@ export async function prepareImageForUpload(file: File): Promise<File> {
   context.fillRect(0, 0, width, height);
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.84));
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
   if (!blob || blob.size >= file.size) return file;
   const baseName = file.name.replace(/\.[^.]+$/, "") || "lipstick";
   return new File([blob], `${baseName}.jpg`, { type: "image/jpeg", lastModified: file.lastModified });

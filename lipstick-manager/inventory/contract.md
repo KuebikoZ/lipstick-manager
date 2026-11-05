@@ -117,7 +117,7 @@ EvidenceKind = image | official | authorized_store | user
 | `revision` | integer | `1` | `>=1`，乐观锁 |
 | `display_name` | string | 服务端/客户端提交适配层生成 | 品牌、系列、色号的非空值以 `-` 连接；均为空时为“信息待补充”；页面不提供独立输入框 |
 | `brand` | string/null | `null` | 最多 100 字符 |
-| `series` | string/null | `null` | 最多 100 字符 |
+| `series` | string/null | `null` | 最多 50 字符；保存与展示时去掉开头重复品牌名及相邻分隔符 |
 | `shade_code` | string/null | `null` | 最多 100 字符，保留前导零 |
 | `color_family` | ColorFamily/null | `null` | null=待分类，不是第七色系 |
 | `color_description` | string/null | `null` | 最多 200 字符 |
@@ -166,7 +166,7 @@ days_left = deadline - today(Asia/Shanghai)
 | `position` | integer | 0..2，同一 owner 唯一 |
 | `status` | temp/attached | 保存 item 后 attached |
 
-单个 draft/item 最多 3 张。MIME 必须按文件头验证；上传前或服务端处理时移除 EXIF 定位等非必要元数据。
+单个 draft/item 最多 3 张。MIME 必须按文件头验证；浏览器将大图压缩至最长边 1600px、JPEG 质量约 0.80，并移除 EXIF；服务端仍须下载压缩图复核文件头、尺寸和哈希。多图先顺序预留 position，再并行上传和完成校验，不能并发争抢 position。
 
 **Draft**：`id`、`kind(new|edit)`、`item_id`、`base_revision`、经 schema 校验的 `payload`、`suggestion_version`、`updated_at`、`expires_at`。新增草稿最多一个；每个 item 最多一个编辑草稿。
 
@@ -459,7 +459,7 @@ draft → images_ready → queued → recognizing
 
 ### 6.3 详情与列表状态
 
-- 详情固定顺序：产品名 → 品牌/系列/色号 → 开封/期限/色系标签 → 使用期限卡片 → 备注 → 编辑/移出 → 删除文字入口。
+- 详情不展示产品图片，固定顺序：品牌-系列-色号组合名称 → 品牌/系列/色号 → 开封/期限/色系标签 → 使用期限卡片 → 备注 → 编辑/移出 → 删除文字入口。
 - 三节点时间轴始终显示：录入日期必有；未开封显示“尚未开封”；未知显示“未记录”；无 deadline 显示“待补充”。页面不显示“提醒截止日”字段。
 - 默认列表排序为 `expiry`；筛选顺序为期限、开封、色系、品牌。
 - 进入详情再返回必须保留筛选、排序、买前所选色系和滚动位置。
@@ -546,7 +546,7 @@ Supabase 本期只使用 Free，并在新加坡 `ap-southeast-1` 创建开发项
 - 在 DeepSeek 控制台创建 API Key、充值，并核对当日模型/Search/Fetch 单价及图片数据政策。
 - 设置固定用户名、生成 Argon2id 密码哈希和 32 字节以上 Auth secret；明文密码只由本人保管。
 - 在 Supabase 新加坡区域创建 Free 开发项目；完成一次 PostgreSQL 手工导出和 Storage 图片下载。本期不做生产级恢复演练。
-- 在 Vercel 设置服务端环境变量，使用默认 `vercel.app` 开发/预览地址即可；本期不要求购买或绑定正式域名。确认客户端构建产物不包含任何密钥。
+- 在 Vercel 设置服务端环境变量，使用默认 `vercel.app` 开发/预览地址即可；本期不要求购买或绑定正式域名。图片上传与 AI Route Handler 使用 `sin1`，与新加坡 Supabase 就近通信。确认客户端构建产物不包含任何密钥。
 
 ### 官方能力核对记录
 

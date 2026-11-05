@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
       "font-src 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://*.supabase.co",
       "object-src 'none'",
       scriptSource,
       "style-src 'self' 'unsafe-inline'",

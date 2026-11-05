@@ -34,6 +34,11 @@ describe("item write schema", () => {
     expect(createItemWriteSchema("2026-11-04").safeParse({ ...validInput, texture: "奶油" }).success).toBe(false);
   });
 
+  it("limits the series to the form contract", () => {
+    expect(createItemWriteSchema("2026-11-04").safeParse({ ...validInput, series: "x".repeat(50) }).success).toBe(true);
+    expect(createItemWriteSchema("2026-11-04").safeParse({ ...validInput, series: "x".repeat(51) }).success).toBe(false);
+  });
+
   it("requires an explicit color decision and rejects future dates", () => {
     const result = createItemWriteSchema("2026-11-04").safeParse({
       ...validInput,
