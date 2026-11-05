@@ -9,6 +9,15 @@ import { ProductCover } from "@/components/inventory/ProductCover";
 import { buildDisplayName } from "@/lib/domain/display-name";
 import { AnalyticsPageView } from "@/components/analytics/AnalyticsPageView";
 
+const colorFamilyLabels = {
+  nude: "裸色系",
+  rose: "豆沙色系",
+  orange: "橘色系",
+  red: "红色系",
+  plum: "梅子色系",
+  brown: "棕色系",
+} as const;
+
 export default async function InventoryDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ returnTo?: string }> }) {
   await requirePageSession();
   const item = await loadItem((await params).id);
@@ -27,6 +36,8 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
           <div><dt>品牌</dt><dd>{item.brand ?? "未记录"}</dd></div>
           <div><dt>系列</dt><dd>{item.series ?? "未记录"}</dd></div>
           <div><dt>色号</dt><dd>{item.shade_code ?? "未记录"}</dd></div>
+          <div><dt>主色系</dt><dd>{item.color_family ? colorFamilyLabels[item.color_family] : "待分类"}</dd></div>
+          <div><dt>质地</dt><dd>{item.texture ?? "待补充"}</dd></div>
           <div><dt>持有状态</dt><dd>{item.lifecycle === "opened" ? "已开封" : item.lifecycle === "unopened" ? "未开封" : "待补充"}</dd></div>
           <div><dt>期限</dt><dd>{item.deadline ? `${item.deadline}（${item.days_left} 天）` : "期限待补充"}</dd></div>
           <div><dt>备注</dt><dd>{item.note ?? "未记录"}</dd></div>
