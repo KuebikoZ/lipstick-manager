@@ -297,12 +297,11 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
       <header className={styles.header}>
         <Link href="/" className={styles.back}>← 返回并保留草稿</Link>
         <div>
-          <p className={styles.eyebrow}>手工录入</p>
           <h1>新增一支口红</h1>
         </div>
-        <span className={styles.draftStatus} role="status">
-          {draftStatus === "saving" ? "正在保存草稿…" : draftStatus === "failed" ? "草稿保存失败，将自动重试" : "草稿已保存"}
-        </span>
+        {draftStatus !== "saved" ? <span className={styles.draftStatus} role="status">
+          {draftStatus === "saving" ? "正在保存草稿…" : "草稿保存失败，将自动重试"}
+        </span> : null}
       </header>
 
       <AIImageIntake

@@ -2,7 +2,6 @@
 .header { display: grid; gap: 12px; margin-bottom: 20px; }
 .header h1 { margin: 4px 0 0; font-size: clamp(1.8rem, 8vw, 2.6rem); }
 .back, .cancel { color: var(--accent); font-weight: 700; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
-.eyebrow { margin: 0; color: var(--accent); font-size: .75rem; font-weight: 800; letter-spacing: .16em; }
 .draftStatus { color: var(--muted); font-size: .875rem; }
 .section { margin: 20px 0 0; padding: 20px 16px; border: 1px solid #e8deda; border-radius: 16px; background: var(--surface); }
 .section h2 { margin: 0 0 4px; font-size: 1.1rem; }

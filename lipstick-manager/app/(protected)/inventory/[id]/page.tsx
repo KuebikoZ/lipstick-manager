@@ -49,7 +49,6 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
           <Link href="/inventory/new">新增</Link>
           <ItemActions id={item.id} revision={item.revision}/>
         </div>
-        <p className={styles.note}>日期仅用于管理提醒，不代表实物品质检测。</p>
       </article>
     </main>
   );
