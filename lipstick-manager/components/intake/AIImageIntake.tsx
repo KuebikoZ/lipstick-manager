@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { aiConsentVersion, type AIModelResult } from "@/lib/domain/ai-intake";
+import { prepareImageForUpload } from "./image-preparation";
 import styles from "./AIImageIntake.module.css";
 
-type AIResult = AIModelResult & { task_id: string; status: string; evidence?: Array<{ id: string; field_name: string; kind: string; excerpt: string | null; url: string | null }> };
+type AIResult = AIModelResult & { task_id: string; status: string };
 type Props = {
   draftId: string;
   initialImageIds: string[];
@@ -16,7 +17,7 @@ type Props = {
 
 export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onApply, confirmedIdentity }: Props) {
   const [images, setImages] = useState<Array<{ id: string; name: string; preview: string }>>(
-    initialImageIds.map((id, index) => ({ id, name: `已上传图片 ${index + 1}`, preview: "" })),
+    initialImageIds.map((id, index) => ({ id, name: `已上传图片 ${index + 1}`, preview: `/api/v1/uploads/${id}` })),
   );
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +47,8 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
     setUploading(true); setError(null);
     const next = [...images];
     try {
-      for (const file of Array.from(files)) {
+      for (const originalFile of Array.from(files)) {
+        const file = await prepareImageForUpload(originalFile);
         const created = await fetch("/api/v1/uploads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file_name: file.name, mime_type: file.type, byte_size: file.size, draft_id: draftId }) });
         const createdBody = await created.json();
         if (!created.ok) throw new Error(createdBody.error?.field_errors?.image ?? createdBody.error?.message ?? "无法准备图片上传");
@@ -56,7 +58,7 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
           if (!upload.ok) throw new Error("图片上传失败，请重试");
           const completed = await fetch(`/api/v1/uploads/${pendingImageId}/complete`, { method: "POST" });
           if (!completed.ok) { const body = await completed.json(); throw new Error(body.error?.message ?? "图片校验失败"); }
-          next.push({ id: pendingImageId, name: file.name, preview: URL.createObjectURL(file) });
+          next.push({ id: pendingImageId, name: originalFile.name, preview: URL.createObjectURL(file) });
         } catch (cause) { await fetch(`/api/v1/uploads/${pendingImageId}`, { method: "DELETE" }); throw cause; }
       }
       updateImages(next);
@@ -109,9 +111,13 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
       {showConsent ? <div className={styles.consent} role="alert"><strong>首次图片外传确认</strong><p>点击同意后，本次所选图片会发送至 DeepSeek 用于识别包装文字和产品信息。图片不会公开；你可以忽略全部建议并继续手填。</p><div><button type="button" onClick={() => void startRecognition(true)}>同意并开始识别</button><button type="button" className={styles.secondary} onClick={() => setShowConsent(false)}>暂不识别</button></div></div> : null}
       <div className={styles.controls}><button type="button" onClick={() => void startRecognition()} disabled={uploading || Boolean(status && ["queued", "recognizing", "researching"].includes(status))}>{status && ["queued", "recognizing", "researching"].includes(status) ? "正在识别…" : "开始识别"}</button>{status && ["queued", "recognizing", "researching"].includes(status) ? <button type="button" className={styles.secondary} onClick={() => void cancel()}>取消</button> : null}</div>
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
-      {result && applying ? <div className={styles.suggestions}><h3>识别建议</h3><p>逐项采用或忽略，不会自动覆盖你的输入。</p>{result.candidates.length > 1 ? <div className={styles.candidates}><strong>可能的产品</strong>{result.candidates.map((candidate) => <button type="button" key={candidate.label} onClick={() => { for (const field of ["brand", "series", "shade_code"] as const) if (candidate[field]) onApply(field, candidate[field], result.task_id); }}>{candidate.label}<small>{Math.round(candidate.confidence * 100)}%</small></button>)}</div> : null}{Object.entries(applying).filter(([field, value]) => value !== null && !ignored.includes(field)).map(([field, value]) => <div className={styles.suggestion} key={field}><span><strong>{fieldLabel(field)}</strong><small>{String(value)}</small></span><span className={styles.suggestionActions}><button type="button" onClick={() => onApply(field, value, result.task_id)}>采用</button><button type="button" onClick={() => setIgnored((current) => [...current, field])}>忽略</button></span></div>)}{result.evidence?.length ? <details><summary>查看证据（{result.evidence.length}）</summary><ul>{result.evidence.map((evidence) => <li key={evidence.id}>{evidence.url ? <a href={evidence.url} target="_blank" rel="noreferrer">{evidence.excerpt || evidence.url}</a> : evidence.excerpt || "来自上传图片"}</li>)}</ul></details> : null}</div> : null}
+      {result && applying ? <div className={styles.suggestions}><h3>识别建议</h3><p>逐项采用或忽略；点击采用会覆盖该字段当前的选择。</p>{result.candidates.length > 1 ? <div className={styles.candidates}><strong>可能的产品</strong>{result.candidates.map((candidate) => <button type="button" key={candidate.label} onClick={() => { for (const field of ["brand", "series", "shade_code"] as const) if (candidate[field]) onApply(field, candidate[field], result.task_id); }}>{candidate.label}<small>{Math.round(candidate.confidence * 100)}%</small></button>)}</div> : null}{Object.entries(applying).filter(([field, value]) => value !== null && !ignored.includes(field)).map(([field, value]) => <div className={styles.suggestion} key={field}><span><strong>{fieldLabel(field)}</strong><small>{suggestionValue(field, value)}</small></span><span className={styles.suggestionActions}><button type="button" onClick={() => onApply(field, value, result.task_id)}>采用</button><button type="button" onClick={() => setIgnored((current) => [...current, field])}>忽略</button></span></div>)}</div> : null}
     </section>
   );
 }
 
 function fieldLabel(field: string) { return ({ brand: "品牌", series: "系列", shade_code: "色号", color_family: "主色系", color_description: "颜色说明", texture: "质地", pao_months: "开封后月数", manufactured_on: "生产日期", shelf_life_months: "未开封保质期", expires_on: "到期日期" } as Record<string, string>)[field] ?? field; }
+function suggestionValue(field: string, value: unknown) {
+  if (field === "color_family") return ({ nude: "裸色系", rose: "豆沙色系", orange: "橘色系", red: "红色系", plum: "梅子色系", brown: "棕色系" } as Record<string, string>)[String(value)] ?? String(value);
+  return String(value);
+}

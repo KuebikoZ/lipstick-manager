@@ -5,6 +5,20 @@ import { errorResponse } from "@/lib/http/api-response";
 import { invalidOriginResponse, inventoryErrorResponse, uuidSchema } from "@/lib/http/inventory-api";
 import { UploadService } from "@/lib/services/upload-service";
 type Context = { params: Promise<{ id: string }> };
+export async function GET(_request: Request, context: Context) {
+  if (!(await getValidSession())) return errorResponse(401, "UNAUTHORIZED", "请先登录");
+  try {
+    const env = parseSupabaseEnv(process.env);
+    const preview = await new UploadService(createSupabaseAdminClient(env), env.SUPABASE_STORAGE_BUCKET).getPreview(uuidSchema.parse((await context.params).id));
+    return new Response(preview.data, {
+      headers: {
+        "Content-Type": preview.mimeType,
+        "Cache-Control": "private, max-age=60",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch (error) { return inventoryErrorResponse(error); }
+}
 export async function DELETE(request: Request, context: Context) {
   if (!(await getValidSession())) return errorResponse(401, "UNAUTHORIZED", "请先登录");
   const originError = invalidOriginResponse(request); if (originError) return originError;

@@ -4,6 +4,7 @@ import {
   expirySourceSchema,
   lifecycleSchema,
   openingPrecisionSchema,
+  textureSchema,
 } from "@/lib/domain/inventory";
 import { localDateSchema, type LocalDate } from "@/lib/domain/local-date";
 import { validateDeadlineDates } from "@/lib/domain/validation";
@@ -21,7 +22,7 @@ export const itemWriteObjectSchema = z
     color_family: colorFamilySchema.nullable(),
     color_family_confirmed: z.boolean(),
     color_description: nullableText(200),
-    texture: nullableText(200),
+    texture: textureSchema.nullable(),
     lifecycle: lifecycleSchema,
     opened_on: nullableDate,
     opening_precision: openingPrecisionSchema,

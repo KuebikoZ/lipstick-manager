@@ -17,7 +17,7 @@ const resultJsonSchema = {
   properties: {
     identity: { type: "object", additionalProperties: false, required: ["brand", "series", "shade_code"], properties: identityProperties },
     candidates: { type: "array", maxItems: 5, items: { type: "object", additionalProperties: false, required: ["brand", "series", "shade_code", "label", "confidence"], properties: { ...identityProperties, label: { type: "string" }, confidence: { type: "number", minimum: 0, maximum: 1 } } } },
-    suggestions: { type: "object", additionalProperties: false, required: ["color_family", "color_description", "texture", "pao_months", "manufactured_on", "shelf_life_months", "expires_on"], properties: { color_family: { enum: ["nude", "rose", "orange", "red", "plum", "brown", null] }, color_description: nullableString, texture: nullableString, pao_months: { type: ["integer", "null"], minimum: 1, maximum: 120 }, manufactured_on: nullableDate, shelf_life_months: { type: ["integer", "null"], minimum: 1, maximum: 240 }, expires_on: nullableDate } },
+    suggestions: { type: "object", additionalProperties: false, required: ["color_family", "color_description", "texture", "pao_months", "manufactured_on", "shelf_life_months", "expires_on"], properties: { color_family: { enum: ["nude", "rose", "orange", "red", "plum", "brown"] }, color_description: nullableString, texture: { enum: ["哑光", "丝绒", "缎光", "水光", "镜面", "其他", null] }, pao_months: { type: ["integer", "null"], minimum: 1, maximum: 120 }, manufactured_on: nullableDate, shelf_life_months: { type: ["integer", "null"], minimum: 1, maximum: 240 }, expires_on: nullableDate } },
     image_evidence: { type: "array", maxItems: 20, items: { type: "object", additionalProperties: false, required: ["field", "image_index", "excerpt"], properties: { field: { type: "string" }, image_index: { type: "integer", minimum: 0, maximum: 2 }, excerpt: nullableString } } },
     unresolved_fields: { type: "array", maxItems: 20, items: { type: "string" } },
     warnings: { type: "array", maxItems: 20, items: { type: "string" } },
@@ -68,7 +68,7 @@ export class DeepSeekProvider {
   }
 
   private async recognize(images: ImageInput[], context = ""): Promise<{ result: AIModelResult; usage: unknown }> {
-    const prompt = `你是口红包装识别助手。只依据图片和提供的网页证据提取信息；不确定就返回 null，禁止猜测生产批号日期。颜色族只能是 nude/rose/orange/red/plum/brown/null，其中桃色归入 nude。日期只有在图片明确给出完整年月日时才返回 YYYY-MM-DD，否则返回 null。必须按指定 JSON Schema 返回全部字段。${context}`;
+    const prompt = `你是口红包装识别助手。优先逐图读取品牌商标、系列名和色号，并综合多张图片交叉确认；不确定的身份字段返回 null，不得凭空编造。颜色族必须在 nude/rose/orange/red/plum/brown 中选择识别到或视觉上最相近的一项，不允许返回 null，其中桃色归入 nude。质地只能选择哑光/丝绒/缎光/水光/镜面/其他或 null。禁止猜测生产批号日期；日期只有在图片明确给出完整年月日时才返回 YYYY-MM-DD，否则返回 null。必须按指定 JSON Schema 返回全部字段。${context}`;
     const response = await this.request("/v1/responses", {
       model: this.env.AI_MODEL, reasoning: { effort: "none" }, max_output_tokens: 2000,
       input: [{ role: "user", content: [
@@ -109,10 +109,18 @@ export class DeepSeekProvider {
     const search = await this.request("/v1/tools/search", { query, count: 3, need_content: false });
     const results = (Array.isArray(search.results) ? search.results : []).slice(0, 3) as SearchResult[];
     const fetched: Array<SearchResult & { content: string }> = [];
-    const result = results[0];
-    if (result) try { const page = await this.request("/v1/tools/fetch", { url: result.url }); fetched.push({ ...result, content: String(page.content ?? "").slice(0, 6000) }); } catch { /* partial search result remains useful */ }
+    const firstSearchResult = results[0];
+    if (firstSearchResult) try { const page = await this.request("/v1/tools/fetch", { url: firstSearchResult.url }); fetched.push({ ...firstSearchResult, content: String(page.content ?? "").slice(0, 6000) }); } catch { /* partial search result remains useful */ }
     if (!fetched.length) return { ...first, webEvidence: results, toolUsage: { search: results.length ? 1 : 0, fetch: 0 } };
-    const second = await this.recognize(images, `${identityContext}\n候选网页证据：\n${fetched.map((page) => `${page.title}\n${page.url}\n${page.content}`).join("\n---\n")}`);
-    return { result: second.result, usage: { first: first.usage, second: second.usage }, webEvidence: fetched, toolUsage: { search: results.length ? 1 : 0, fetch: fetched.length } };
+    const second = await this.recognize(images, `${identityContext}\n候选网页资料仅用于补全图片中缺失的信息，不得覆盖第一次已经识别出的非空身份字段：\n${fetched.map((page) => `${page.title}\n${page.url}\n${page.content}`).join("\n---\n")}`);
+    const result = {
+      ...second.result,
+      identity: {
+        brand: first.result.identity.brand ?? second.result.identity.brand,
+        series: first.result.identity.series ?? second.result.identity.series,
+        shade_code: first.result.identity.shade_code ?? second.result.identity.shade_code,
+      },
+    };
+    return { result, usage: { first: first.usage, second: second.usage }, webEvidence: fetched, toolUsage: { search: results.length ? 1 : 0, fetch: fetched.length } };
   }
 }

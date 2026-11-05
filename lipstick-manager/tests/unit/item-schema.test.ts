@@ -29,6 +29,11 @@ describe("item write schema", () => {
     expect(createItemWriteSchema("2026-11-04").safeParse(validInput).success).toBe(true);
   });
 
+  it("accepts only the confirmed texture options", () => {
+    expect(createItemWriteSchema("2026-11-04").safeParse({ ...validInput, texture: "镜面" }).success).toBe(true);
+    expect(createItemWriteSchema("2026-11-04").safeParse({ ...validInput, texture: "奶油" }).success).toBe(false);
+  });
+
   it("requires an explicit color decision and rejects future dates", () => {
     const result = createItemWriteSchema("2026-11-04").safeParse({
       ...validInput,

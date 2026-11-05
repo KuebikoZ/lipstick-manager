@@ -115,6 +115,14 @@ export class InventoryRepository {
   }
 
   async deleteNewDraft(id: string): Promise<boolean> {
+    const { data: images, error: imageError } = await this.client
+      .from("lipstick_images")
+      .select("storage_path")
+      .eq("draft_id", id);
+    if (imageError) throw new InventoryDependencyError();
+    const paths = (images ?? []).map((image) => image.storage_path);
+    const { error: taskError } = await this.client.from("ai_tasks").delete().eq("draft_id", id);
+    if (taskError) throw new InventoryDependencyError();
     const { data, error } = await this.client
       .from("drafts")
       .delete()
@@ -122,6 +130,7 @@ export class InventoryRepository {
       .eq("kind", "new")
       .select("id");
     if (error) throw new InventoryDependencyError();
+    if (data?.length && paths.length) await this.client.storage.from(this.bucket).remove(paths);
     return Boolean(data?.length);
   }
 

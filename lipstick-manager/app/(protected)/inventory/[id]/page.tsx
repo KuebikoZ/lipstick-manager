@@ -6,10 +6,12 @@ import { InventoryNotFoundError } from "@/lib/services/inventory-service";
 import { createInventoryService } from "@/lib/services/service-factory";
 import styles from "./page.module.css";
 import { ItemActions } from "@/components/inventory/ItemActions";
+import { buildDisplayName } from "@/lib/domain/display-name";
 
 export default async function InventoryDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ returnTo?: string }> }) {
   await requirePageSession();
   const item = await loadItem((await params).id);
+  const displayName = buildDisplayName(item);
   const requestedReturn = (await searchParams).returnTo;
   const returnTo = requestedReturn?.startsWith("/inventory") || requestedReturn?.startsWith("/compare") ? requestedReturn : "/inventory";
   return (
@@ -17,9 +19,9 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
       <article className={styles.card}>
         <Link className={styles.back} href={returnTo}>← 返回{returnTo.startsWith("/compare") ? "买前查一查" : "口红柜"}</Link>
         {item.images[0] && (
-          <Image unoptimized className={styles.cover} width={632} height={480} src={item.images[0].url} alt={`${item.display_name}实拍`}/>
+          <Image unoptimized className={styles.cover} width={632} height={480} src={item.images[0].url} alt={`${displayName}实拍`}/>
         )}
-        <h1>{item.display_name}</h1>
+        <h1>{displayName}</h1>
         <dl>
           <div><dt>品牌</dt><dd>{item.brand ?? "未记录"}</dd></div>
           <div><dt>系列</dt><dd>{item.series ?? "未记录"}</dd></div>

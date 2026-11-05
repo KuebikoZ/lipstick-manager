@@ -4,16 +4,19 @@ export const colorFamilies = ["nude", "rose", "orange", "red", "plum", "brown"] 
 export const lifecycles = ["unopened", "opened", "unknown", "discarded"] as const;
 export const openingPrecisions = ["exact", "unknown"] as const;
 export const expirySources = ["explicit", "calculated"] as const;
+export const textures = ["哑光", "丝绒", "缎光", "水光", "镜面", "其他"] as const;
 
 export const colorFamilySchema = z.enum(colorFamilies);
 export const lifecycleSchema = z.enum(lifecycles);
 export const openingPrecisionSchema = z.enum(openingPrecisions);
 export const expirySourceSchema = z.enum(expirySources);
+export const textureSchema = z.enum(textures);
 
 export type ColorFamily = z.infer<typeof colorFamilySchema>;
 export type Lifecycle = z.infer<typeof lifecycleSchema>;
 export type OpeningPrecision = z.infer<typeof openingPrecisionSchema>;
 export type ExpirySource = z.infer<typeof expirySourceSchema>;
+export type Texture = z.infer<typeof textureSchema>;
 
 export const currentInventoryLifecycles = ["unopened", "opened", "unknown"] as const;
 

@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import type { Draft } from "@/lib/domain/item";
-import { colorFamilies, type ColorFamily, type Lifecycle } from "@/lib/domain/inventory";
+import { buildDisplayName } from "@/lib/domain/display-name";
+import { colorFamilies, textures, type ColorFamily, type Lifecycle } from "@/lib/domain/inventory";
 import type { ItemWriteInput } from "@/lib/domain/item-schema";
 import { AIImageIntake } from "./AIImageIntake";
 import styles from "./ManualIntakeForm.module.css";
@@ -21,13 +22,12 @@ const optionalInteger = (maximum: number) =>
 
 const formSchema = z
   .object({
-    display_name: z.string().trim().min(1, "请输入识别名称").max(100, "最多 100 个字符"),
     brand: z.string().max(100, "最多 100 个字符"),
     series: z.string().max(100, "最多 100 个字符"),
     shade_code: z.string().max(100, "最多 100 个字符"),
     color_family: z.enum([...colorFamilies, "pending", ""]),
     color_description: z.string().max(200, "最多 200 个字符"),
-    texture: z.string().max(200, "最多 200 个字符"),
+    texture: z.enum(["", ...textures]),
     lifecycle: z.enum(["unopened", "opened", "unknown"]),
     opened_on: optionalDate,
     pao_months: optionalInteger(120),
@@ -54,7 +54,6 @@ const colorLabels: Record<ColorFamily, { name: string; help: string }> = {
 };
 
 const blankValues: FormValues = {
-  display_name: "",
   brand: "",
   series: "",
   shade_code: "",
@@ -82,14 +81,14 @@ function toItemInput(values: FormValues, imageIds: string[] = [], acceptedTaskId
   const openedOn = values.opened_on || null;
   const expiresOn = values.expires_on || null;
   return {
-    display_name: values.display_name.trim(),
+    display_name: buildDisplayName(values),
     brand: textOrNull(values.brand),
     series: textOrNull(values.series),
     shade_code: textOrNull(values.shade_code),
     color_family: values.color_family === "pending" ? null : (values.color_family as ColorFamily),
     color_family_confirmed: Boolean(values.color_family),
     color_description: textOrNull(values.color_description),
-    texture: textOrNull(values.texture),
+    texture: values.texture || null,
     lifecycle: values.lifecycle,
     opened_on: openedOn,
     opening_precision: openedOn ? "exact" : "unknown",
@@ -119,7 +118,6 @@ function fromDraft(draft: Draft): FormValues {
   const payload = draft.payload as Partial<ItemWriteInput>;
   return {
     ...blankValues,
-    display_name: payload.display_name ?? "",
     brand: payload.brand ?? "",
     series: payload.series ?? "",
     shade_code: payload.shade_code ?? "",
@@ -149,6 +147,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
   const router = useRouter();
   const [draftStatus, setDraftStatus] = useState<"saved" | "saving" | "failed">("saved");
   const [keepDraftPending, setKeepDraftPending] = useState(false);
+  const [cancelPending, setCancelPending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submission, setSubmission] = useState<{ body: string; key: string } | null>(null);
   const initialPayload = draft.payload as Partial<ItemWriteInput>;
@@ -244,10 +243,30 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
     }
   };
 
+  const cancelIntake = async () => {
+    if (cancelPending || !window.confirm("放弃本次录入？草稿、图片和识别结果都会永久删除。")) return;
+    setCancelPending(true);
+    setSubmitError(null);
+    try {
+      const response = await fetch(`/api/v1/drafts/${draft.id}`, { method: "DELETE" });
+      if (!response.ok) {
+        setSubmitError("暂时无法取消录入，请稍后重试");
+        return;
+      }
+      window.sessionStorage.removeItem(`ai-task:${draft.id}`);
+      router.push("/");
+      router.refresh();
+    } catch {
+      setSubmitError("网络连接失败，暂时无法取消录入");
+    } finally {
+      setCancelPending(false);
+    }
+  };
+
   return (
     <form className={styles.form} onSubmit={onSubmit} noValidate>
       <header className={styles.header}>
-        <Link href="/" className={styles.back}>← 返回</Link>
+        <Link href="/" className={styles.back}>← 返回并保留草稿</Link>
         <div>
           <p className={styles.eyebrow}>手工录入</p>
           <h1>新增一支口红</h1>
@@ -300,9 +319,6 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
 
       <fieldset className={styles.section}>
         <legend>产品信息</legend>
-        <Field label="识别名称（必填）" error={errors.display_name?.message}>
-          <input autoComplete="off" maxLength={100} {...register("display_name")} />
-        </Field>
         <div className={styles.twoColumns}>
           <Field label="品牌" error={errors.brand?.message}><input maxLength={100} {...register("brand")} /></Field>
           <Field label="系列" error={errors.series?.message}><input maxLength={100} {...register("series")} /></Field>
@@ -327,7 +343,12 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         </div>
         {errors.color_family ? <p className={styles.error} role="alert">{errors.color_family.message}</p> : null}
         <Field label="颜色说明" error={errors.color_description?.message}><input maxLength={200} {...register("color_description")} /></Field>
-        <Field label="质地" error={errors.texture?.message}><input maxLength={200} {...register("texture")} /></Field>
+        <Field label="质地" error={errors.texture?.message}>
+          <select {...register("texture")}>
+            <option value="">待补充</option>
+            {textures.map((texture) => <option key={texture} value={texture}>{texture}</option>)}
+          </select>
+        </Field>
       </fieldset>
 
       <fieldset className={styles.section}>
@@ -346,14 +367,22 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
 
       <div className={styles.actions}>
         {submitError ? <p className={styles.submitError} role="alert">{submitError}</p> : null}
-        <button type="submit" disabled={isSubmitting || keepDraftPending}>{isSubmitting ? "正在保存…" : "保存并查看详情"}</button>
+        <button type="submit" disabled={isSubmitting || keepDraftPending || cancelPending}>{isSubmitting ? "正在保存…" : "保存并查看详情"}</button>
         <button
           type="button"
           className={styles.cancel}
-          disabled={isSubmitting || keepDraftPending}
+          disabled={isSubmitting || keepDraftPending || cancelPending}
           onClick={keepDraftAndLeave}
         >
           {keepDraftPending ? "正在保留草稿…" : "返回首页，保留草稿"}
+        </button>
+        <button
+          type="button"
+          className={styles.cancel}
+          disabled={isSubmitting || keepDraftPending || cancelPending}
+          onClick={() => void cancelIntake()}
+        >
+          {cancelPending ? "正在取消…" : "取消录入并删除草稿"}
         </button>
       </div>
     </form>

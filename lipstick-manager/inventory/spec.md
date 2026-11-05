@@ -128,9 +128,8 @@
 - `ColorFamilySelector` / `ColorFamilyGroup`：全部与六色系固定顺序；待分类单独入口。
 - `ImageUploader`：文件选择/拍照、预览、删除、封面排序、上传进度与错误。
 - `LipstickForm`：开封信息、身份、色系、质地、日期、备注；新增和编辑复用。
-- `AISuggestionPanel`：任务阶段、候选、证据、逐字段采用/忽略、取消/重试。
+- `AISuggestionPanel`：任务阶段、候选、逐字段采用/忽略、取消/重试；不在录入页展示证据。
 - `DeadlinePanel`：截止日、剩余天数、依据和三节点时间轴；详情页始终显示“录入—开封—到期”，缺值显示“尚未开封／未记录／待补充”。
-- `EvidenceList`：字段、来源类型、摘录、来源链接/图片索引和检索时间。
 - `ConfirmDialog`、`InlineError`、`Toast`、`EmptyState`、`Skeleton`：共享反馈。
 
 ### 3.3 状态管理
@@ -182,10 +181,11 @@
 |---|---|---|
 | `id` | uuid PK | 单支实物 |
 | `revision` | int not null default 1 | 乐观锁，每次成功更新 +1 |
-| `display_name` | varchar(100) not null | 1–100 字符 |
+| `display_name` | varchar(100) not null | 由品牌、系列、色号按顺序以 `-` 连接生成；均为空时为“信息待补充”，仅作为兼容存储字段，不单独录入 |
 | `brand`,`series`,`shade_code` | varchar(100) null | 产品身份 |
 | `color_family` | enum null | 六色系；null=待分类 |
-| `color_description`,`texture` | varchar(200) null | 描述与质地 |
+| `color_description` | varchar(200) null | 颜色描述 |
+| `texture` | varchar(200) null | 仅允许哑光、丝绒、缎光、水光、镜面、其他 |
 | `lifecycle` | enum not null | 默认 `unknown` |
 | `opened_on` | date null | 仅 exact 参与计算 |
 | `opening_precision` | enum not null | 默认 `unknown` |
@@ -222,7 +222,7 @@
 
 ### 4.3 核心校验与期限规则
 
-- 保存最低要求：`display_name` 非空、`lifecycle` 合法；`color_family=null` 是用户显式确认的“待分类”，接口用 `color_family_confirmed: true` 区分遗漏与确认。
+- 保存最低要求：服务端可生成 `display_name`、`lifecycle` 合法；`color_family=null` 是用户显式确认的“待分类”，接口用 `color_family_confirmed: true` 区分遗漏与确认。
 - `opened` 可不提供 `opened_on`，此时 `opening_precision=unknown`；若提供则必须 `exact` 且不得晚于今天。非 `opened` 状态不参与 PAO 截止计算。
 - `manufactured_on` 不得晚于今天；月数字段必须为正整数并在表约束范围内。
 - `calculated_expires_on = add_calendar_months(manufactured_on, shelf_life_months)`；目标月无同日时取月末。
@@ -382,7 +382,7 @@ lipstick-manager/
 T1–T4 已完成，不进入新的批次流程。剩余任务按以下顺序与验收时点执行：
 
 1. **批次 A｜库存浏览与生命周期**：T6→T7→T8。每个任务分别开发、自动测试并创建 checkpoint commit；三个任务全部完成后统一推送 GitHub、生成一次 Vercel Preview，再进行一次覆盖列表/概览、组合筛选、四种排序、空态、详情与期限时间轴、私有图片、返回上下文、编辑、revision 冲突、开封状态、移出/删除、买前分组与统计同步的人工验收。可复用 T4 已创建的数据或补充测试记录，但不重复验收 T4 的录入流程。
-2. **批次 B｜AI 识别闭环**：T5→T9。T5 开始前需保证 DeepSeek API 可用于开发环境；两个任务分别开发、自动测试并创建 checkpoint commit，全部完成后统一推送 GitHub、生成一次 Vercel Preview，再进行一次覆盖 0–3 张真实图片、主动识别、首次外传同意、候选确认、建议采用/忽略、证据、手工字段保护、取消/超时/失败、手工降级、预算门禁及至少 5 个标注样本评测的人工验收。
+2. **批次 B｜AI 识别闭环**：T5→T9。T5 开始前需保证 DeepSeek API 可用于开发环境；两个任务分别开发、自动测试并创建 checkpoint commit，全部完成后统一推送 GitHub、生成一次 Vercel Preview，再进行一次覆盖 0–3 张真实图片、主动识别、首次外传同意、候选确认、建议采用/忽略、手工字段保护、取消/超时/失败、手工降级、预算门禁及至少 5 个标注样本评测的人工验收。证据仍作为服务端质量校验数据保留，但录入页不展示。
 3. **批次 C｜发布前收口**：T10。在 Preview 环境完成移动端、可访问性和整体发布前检查；自动检查通过并创建 checkpoint commit 后统一推送，生成一次 Vercel Preview 并进行发布前整体验收。
 4. **批次 D｜生产上线**：T11。仅在 T10 验收通过后执行 Production 部署，并在生产环境完成上线验证。
 
@@ -491,4 +491,4 @@ T1–T4 及批次 A 状态为 **已完成**。按照剩余批次顺序，当前�
 
 价格和产品能力核对日期为 2026-11-03；开发启动前应再次核对官方页面：`https://supabase.com/pricing`、`https://supabase.com/docs/guides/platform/regions`、`https://api-docs.deepseek.com/quick_start/pricing/`。
 
-不需要在开始开发前确认产品正式名称、质地枚举或卡片图片比例；它们可保持自由文本/原型默认值，不应扩大本期功能。
+不需要在开始开发前确认产品正式名称或卡片图片比例。产品展示名由品牌、系列、色号组合生成；质地固定为哑光、丝绒、缎光、水光、镜面、其他。

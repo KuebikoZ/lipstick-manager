@@ -115,13 +115,13 @@ EvidenceKind = image | official | authorized_store | user
 |---|---|---|---|
 | `id` | UUID | 服务端必填 | 不可修改 |
 | `revision` | integer | `1` | `>=1`，乐观锁 |
-| `display_name` | string | 必填 | trim 后 1–100 字符 |
+| `display_name` | string | 服务端/客户端提交适配层生成 | 品牌、系列、色号的非空值以 `-` 连接；均为空时为“信息待补充”；页面不提供独立输入框 |
 | `brand` | string/null | `null` | 最多 100 字符 |
 | `series` | string/null | `null` | 最多 100 字符 |
 | `shade_code` | string/null | `null` | 最多 100 字符，保留前导零 |
 | `color_family` | ColorFamily/null | `null` | null=待分类，不是第七色系 |
 | `color_description` | string/null | `null` | 最多 200 字符 |
-| `texture` | string/null | `null` | 最多 200 字符 |
+| `texture` | string/null | `null` | `哑光 | 丝绒 | 缎光 | 水光 | 镜面 | 其他` |
 | `lifecycle` | Lifecycle | `unknown` | discarded 不出现在列表/买前页 |
 | `opened_on` | LocalDate/null | `null` | 仅用户确认；不得晚于 today |
 | `opening_precision` | OpeningPrecision | `unknown` | `opened_on!=null` 时必须为 exact |
@@ -172,7 +172,7 @@ days_left = deadline - today(Asia/Shanghai)
 
 **AITask**：`id`、`draft_id`、`item_id null`、`status`、`workflow_version`、`schema_version`、`provider`、`model`、`input_image_ids`、`result`、`error_code`、`duration_ms`、`usage_json`、`cancelled_at`、时间戳。保存 item 时，只将本次采用建议对应的 task 绑定 `item_id`。这是对 spec N-04 的必要修订。
 
-**Evidence**：`id`、`ai_task_id`、`field_name`、`kind`、`url`、`image_id`、`excerpt`、`retrieved_at`。`image` 证据必须有 image_id；网页证据必须有真实 URL 和 retrieved_at；`excerpt` 最多 500 字符。未采用建议可保留在任务结果中，但详情只展示与已确认字段相关且仍有效的证据。
+**Evidence**：`id`、`ai_task_id`、`field_name`、`kind`、`url`、`image_id`、`excerpt`、`retrieved_at`。`image` 证据必须有 image_id；网页证据必须有真实 URL 和 retrieved_at；`excerpt` 最多 500 字符。证据用于服务端质量校验与评测，不在录入页展示。
 
 **AuthLoginAttempt**：`key_hash`、`window_started_at`、`failure_count`、`locked_until`、`updated_at`。`key_hash` 由 IP HMAC 与用户名 HMAC 组合，不保存明文 IP、用户名或密码；成功登录清除对应记录，过期窗口定期清理。该表只用于固定账号限流，不构成用户管理系统。
 
@@ -418,7 +418,7 @@ AI 约束：`deepseek-flash`（DeepSeek V4.1 Flash）负责图片识别与 JSON 
 | 日期 | 即时预览 | 按 Asia/Shanghai 重算并决定是否可保存 |
 | 筛选排序 | URL 状态和控件 | 校验枚举并返回稳定排序结果/统计 |
 | 图片 | 数量、声明类型/大小预检、预览 | 文件头、大小、尺寸、归属、EXIF、私有路径 |
-| AI 建议 | 展示候选/证据、记录 dirty 字段、让用户采用 | 调用模型、校验 schema、版本化任务、拒绝迟到结果 |
+| AI 建议 | 展示候选和建议、记录 dirty 字段、让用户采用 | 调用模型、校验 schema、版本化任务、保留质量证据、拒绝迟到结果 |
 | 用户确认值 | 表单状态和 accepted task id | 只保存合法字段；不得让 AI 覆盖已有确认值 |
 | 数据归属 | 不提交 owner/user id | 固定会话主体；所有资源按服务端关系校验 |
 | 幂等/并发 | 禁用按钮、复用 key、提交 revision | 唯一幂等约束、事务、乐观锁 |
@@ -480,7 +480,7 @@ draft → images_ready → queued → recognizing
 
 - `app/`：路由、页面、Route Handlers；不承载数据库和模型实现。
 - `components/inventory`：列表、详情、比较展示。
-- `components/intake`：上传、表单、AI 建议和证据交互。
+- `components/intake`：上传、表单和 AI 建议交互。
 - `components/ui`：无业务含义的通用组件。
 - `lib/auth`：会话与服务端守卫。
 - `lib/domain`：schema、期限、生命周期、筛选/排序枚举；不得依赖 UI/供应商。

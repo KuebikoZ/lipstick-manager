@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { colorFamilySchema } from "@/lib/domain/inventory";
+import { colorFamilySchema, textureSchema } from "@/lib/domain/inventory";
 import { localDateSchema } from "@/lib/domain/local-date";
 
 export const aiConsentVersion = "2026-11-03-v1";
-export const aiWorkflowVersion = "1";
-export const aiSchemaVersion = "1";
+export const aiWorkflowVersion = "2";
+export const aiSchemaVersion = "2";
 
 const nullableShortText = z.string().trim().max(200).nullable();
 export const aiIdentitySchema = z.object({
@@ -13,9 +13,9 @@ export const aiIdentitySchema = z.object({
   shade_code: z.string().trim().max(100).nullable(),
 });
 export const aiSuggestionsSchema = z.object({
-  color_family: colorFamilySchema.nullable(),
+  color_family: colorFamilySchema,
   color_description: nullableShortText,
-  texture: nullableShortText,
+  texture: textureSchema.nullable(),
   pao_months: z.number().int().min(1).max(120).nullable(),
   manufactured_on: localDateSchema.nullable(),
   shelf_life_months: z.number().int().min(1).max(240).nullable(),

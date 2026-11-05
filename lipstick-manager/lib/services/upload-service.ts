@@ -63,9 +63,12 @@ export class UploadService {
     const downloaded = await this.client.storage.from(this.bucket).download(image.storage_path);
     if (downloaded.error || !downloaded.data) throw new InventoryValidationError({ image: "图片上传未完成，请重试" });
     try {
-      const inspected = sanitizeAndInspectImage(new Uint8Array(await downloaded.data.arrayBuffer()), image.mime_type);
-      const replaced = await this.client.storage.from(this.bucket).update(image.storage_path, inspected.bytes, { contentType: inspected.mimeType, upsert: true });
-      if (replaced.error) throw new InventoryDependencyError();
+      const originalBytes = new Uint8Array(await downloaded.data.arrayBuffer());
+      const inspected = sanitizeAndInspectImage(originalBytes, image.mime_type);
+      if (!sameBytes(originalBytes, inspected.bytes)) {
+        const replaced = await this.client.storage.from(this.bucket).update(image.storage_path, inspected.bytes, { contentType: inspected.mimeType, upsert: true });
+        if (replaced.error) throw new InventoryDependencyError();
+      }
       const updated = await this.client.from("lipstick_images").update({
         byte_size: inspected.bytes.byteLength, width: inspected.width, height: inspected.height, sha256: inspected.sha256,
       }).eq("id", id).select("id,mime_type,byte_size,width,height,position").single();
@@ -86,4 +89,22 @@ export class UploadService {
     if (!data) throw new InventoryNotFoundError();
     await this.client.storage.from(this.bucket).remove([data.storage_path]);
   }
+
+  async getPreview(id: string): Promise<{ data: Blob; mimeType: string }> {
+    const { data, error } = await this.client
+      .from("lipstick_images")
+      .select("storage_path,mime_type")
+      .eq("id", id)
+      .eq("status", "temp")
+      .maybeSingle();
+    if (error) throw new InventoryDependencyError();
+    if (!data) throw new InventoryNotFoundError();
+    const downloaded = await this.client.storage.from(this.bucket).download(data.storage_path);
+    if (downloaded.error || !downloaded.data) throw new InventoryDependencyError();
+    return { data: downloaded.data, mimeType: data.mime_type };
+  }
+}
+
+function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
+  return left.byteLength === right.byteLength && left.every((value, index) => value === right[index]);
 }
