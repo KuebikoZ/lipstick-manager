@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { aiConsentVersion, type AIModelResult } from "@/lib/domain/ai-intake";
 import { prepareImageForUpload } from "./image-preparation";
+import { SortableImageList, type SortableImage } from "./SortableImageList";
 import styles from "./AIImageIntake.module.css";
 
 type AIResult = AIModelResult & { task_id: string; status: string };
@@ -16,11 +16,10 @@ type Props = {
 };
 
 export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onApply, confirmedIdentity }: Props) {
-  const [images, setImages] = useState<Array<{ id: string; name: string; preview: string }>>(
+  const [images, setImages] = useState<SortableImage[]>(
     initialImageIds.map((id, index) => ({ id, name: `已上传图片 ${index + 1}`, preview: `/api/v1/uploads/${id}` })),
   );
   const [uploading, setUploading] = useState(false);
-  const [uploadSummary, setUploadSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -45,8 +44,7 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
   async function addFiles(files: FileList | null) {
     if (!files?.length) return;
     if (images.length + files.length > 3) { setError("最多上传 3 张图片"); return; }
-    setUploading(true); setError(null); setUploadSummary(null);
-    const startedAt = performance.now();
+    setUploading(true); setError(null);
     const next = [...images];
     const reservations: Array<{ originalFile: File; file: File; imageId: string; uploadUrl: string }> = [];
     try {
@@ -70,8 +68,6 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
       if (next.length > images.length) updateImages(next);
       const failed = results.filter((result) => result.status === "rejected");
       if (failed.length) setError(`${failed.length} 张图片上传失败，其他图片已保留，请重试`);
-      const completedCount = results.length - failed.length;
-      if (completedCount) setUploadSummary(`${completedCount} 张图片已完成，用时 ${((performance.now() - startedAt) / 1000).toFixed(1)} 秒`);
     } catch (cause) {
       await Promise.allSettled(reservations.map(({ imageId }) => fetch(`/api/v1/uploads/${imageId}`, { method: "DELETE" })));
       setError(cause instanceof Error ? cause.message : "图片上传失败，请重试");
@@ -120,11 +116,10 @@ export function AIImageIntake({ draftId, initialImageIds, onImagesChange, onAppl
     <section className={styles.root} aria-labelledby="ai-intake-title">
       <div className={styles.heading}><div><h2 id="ai-intake-title">图片辅助识别</h2><p>可选 0–3 张。只有点击开始识别后图片才会发送给 DeepSeek。</p></div><span>{images.length}/3</span></div>
       <label className={styles.picker}><input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading || images.length >= 3} onChange={(event) => void addFiles(event.target.files)} /><span>{uploading ? "正在上传并校验…" : images.length ? "继续添加图片" : "选择口红包装图片"}</span></label>
-      {images.length ? <ul className={styles.images}>{images.map((image) => <li key={image.id}>{image.preview ? <Image src={image.preview} alt="" width={52} height={52} unoptimized /> : <span className={styles.placeholder}>私有图片</span>}<span>{image.name}</span><button type="button" onClick={() => void removeImage(image.id)} disabled={Boolean(status && !["failed", "cancelled", "timed_out", "complete", "partial"].includes(status))}>移除</button></li>)}</ul> : null}
+      {images.length ? <SortableImageList images={images} onOrderChange={updateImages} onRemove={(id) => void removeImage(id)} removeDisabled={Boolean(status && !["failed", "cancelled", "timed_out", "complete", "partial"].includes(status))} /> : null}
       {showConsent ? <div className={styles.consent} role="alert"><strong>首次图片外传确认</strong><p>点击同意后，本次所选图片会发送至 DeepSeek 用于识别包装文字和产品信息。图片不会公开；你可以忽略全部建议并继续手填。</p><div><button type="button" onClick={() => void startRecognition(true)}>同意并开始识别</button><button type="button" className={styles.secondary} onClick={() => setShowConsent(false)}>暂不识别</button></div></div> : null}
       <div className={styles.controls}><button type="button" onClick={() => void startRecognition()} disabled={uploading || Boolean(status && ["queued", "recognizing", "researching"].includes(status))}>{status && ["queued", "recognizing", "researching"].includes(status) ? "正在识别…" : "开始识别"}</button>{status && ["queued", "recognizing", "researching"].includes(status) ? <button type="button" className={styles.secondary} onClick={() => void cancel()}>取消</button> : null}</div>
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
-      {uploadSummary ? <p className={styles.uploadSummary} role="status">{uploadSummary}</p> : null}
       {result && applying ? <div className={styles.suggestions}><h3>识别建议</h3><p>逐项采用或忽略；点击采用会覆盖该字段当前的选择。</p>{result.candidates.length > 1 ? <div className={styles.candidates}><strong>可能的产品</strong>{result.candidates.map((candidate) => <button type="button" key={candidate.label} onClick={() => { for (const field of ["brand", "series", "shade_code"] as const) if (candidate[field]) onApply(field, candidate[field], result.task_id); }}>{candidate.label}<small>{Math.round(candidate.confidence * 100)}%</small></button>)}</div> : null}{Object.entries(applying).filter(([field, value]) => value !== null && !ignored.includes(field)).map(([field, value]) => <div className={styles.suggestion} key={field}><span><strong>{fieldLabel(field)}</strong><small>{suggestionValue(field, value)}</small></span><span className={styles.suggestionActions}><button type="button" onClick={() => onApply(field, value, result.task_id)}>采用</button><button type="button" onClick={() => setIgnored((current) => [...current, field])}>忽略</button></span></div>)}</div> : null}
     </section>
   );

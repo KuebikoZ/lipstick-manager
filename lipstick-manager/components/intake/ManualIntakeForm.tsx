@@ -152,6 +152,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
   const [submission, setSubmission] = useState<{ body: string; key: string } | null>(null);
   const initialPayload = draft.payload as Partial<ItemWriteInput>;
   const [imageIds, setImageIds] = useState<string[]>(initialPayload.image_ids ?? []);
+  const [imagesTouched, setImagesTouched] = useState(false);
   const [acceptedTaskId, setAcceptedTaskId] = useState<string | null>(initialPayload.accepted_ai_task_id ?? null);
   const {
     register,
@@ -170,7 +171,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
   const lifecycle = watchedValues.lifecycle;
 
   useEffect(() => {
-    if (!isDirty) return;
+    if (!isDirty && !imagesTouched) return;
     const timer = window.setTimeout(async () => {
       setDraftStatus("saving");
       try {
@@ -186,7 +187,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
       }
     }, 1_000);
     return () => window.clearTimeout(timer);
-  }, [acceptedTaskId, draft.id, imageIds, isDirty, watchedValues]);
+  }, [acceptedTaskId, draft.id, imageIds, imagesTouched, isDirty, watchedValues]);
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
@@ -196,6 +197,15 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
       submission?.body === body ? submission : { body, key: crypto.randomUUID() };
     if (currentSubmission !== submission) setSubmission(currentSubmission);
     try {
+      const draftResponse = await fetch(`/api/v1/drafts/${draft.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload: toDraftPayload(values, imageIds, acceptedTaskId) }),
+      });
+      if (!draftResponse.ok) {
+        setSubmitError("图片顺序暂时无法保存，请重试");
+        return;
+      }
       const response = await fetch("/api/v1/items", {
         method: "POST",
         headers: {
@@ -276,15 +286,10 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         </span>
       </header>
 
-      <section className={styles.notice} aria-label="录入说明">
-        <strong>图片识别是可选辅助</strong>
-        <span>不上传图片也能完整保存；AI 结果只作为建议，由你逐项决定是否采用。</span>
-      </section>
-
       <AIImageIntake
         draftId={draft.id}
         initialImageIds={imageIds}
-        onImagesChange={(ids) => { setImageIds(ids); setAcceptedTaskId(null); }}
+        onImagesChange={(ids) => { setImageIds(ids); setImagesTouched(true); setAcceptedTaskId(null); }}
         confirmedIdentity={{ brand: textOrNull(watchedValues.brand ?? ""), series: normalizeSeries(watchedValues.brand, watchedValues.series), shade_code: textOrNull(watchedValues.shade_code ?? "") }}
         onApply={(field, value, taskId) => {
           const fieldName = field as keyof FormValues;
@@ -295,8 +300,8 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         }}
       />
 
-      <fieldset className={styles.section}>
-        <legend>持有状态</legend>
+      <section className={styles.section} aria-labelledby="lifecycle-title">
+        <h2 id="lifecycle-title">持有状态</h2>
         <div className={styles.choiceGrid}>
           {(["unknown", "unopened", "opened"] as const).map((value) => (
             <label className={styles.choice} key={value}>
@@ -315,19 +320,19 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
             </Field>
           </div>
         ) : null}
-      </fieldset>
+      </section>
 
-      <fieldset className={styles.section}>
-        <legend>产品信息</legend>
+      <section className={styles.section} aria-labelledby="product-title">
+        <h2 id="product-title">产品信息</h2>
         <div className={styles.twoColumns}>
           <Field label="品牌" error={errors.brand?.message}><input maxLength={100} {...register("brand")} /></Field>
           <Field label="系列" error={errors.series?.message}><input maxLength={50} {...register("series")} /></Field>
         </div>
         <Field label="色号" error={errors.shade_code?.message}><input maxLength={100} {...register("shade_code")} /></Field>
-      </fieldset>
+      </section>
 
-      <fieldset className={styles.section}>
-        <legend>主色系</legend>
+      <section className={styles.section} aria-labelledby="color-title">
+        <h2 id="color-title">主色系</h2>
         <p className={styles.help}>请选择一个主色系，无法判断时明确选择“待分类”。</p>
         <div className={styles.colorGrid}>
           {colorFamilies.map((value) => (
@@ -349,10 +354,10 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
             {textures.map((texture) => <option key={texture} value={texture}>{texture}</option>)}
           </select>
         </Field>
-      </fieldset>
+      </section>
 
-      <fieldset className={styles.section}>
-        <legend>期限与备注</legend>
+      <section className={styles.section} aria-labelledby="deadline-title">
+        <h2 id="deadline-title">期限与备注</h2>
         <div className={styles.twoColumns}>
           <Field label="实物到期日期" error={errors.expires_on?.message}><input type="date" {...register("expires_on")} /></Field>
           <Field label="实物生产日期" error={errors.manufactured_on?.message}><input type="date" {...register("manufactured_on")} /></Field>
@@ -363,18 +368,18 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         <Field label="备注" error={errors.note?.message}>
           <textarea rows={4} maxLength={500} {...register("note")} />
         </Field>
-      </fieldset>
+      </section>
 
       <div className={styles.actions}>
         {submitError ? <p className={styles.submitError} role="alert">{submitError}</p> : null}
-        <button type="submit" disabled={isSubmitting || keepDraftPending || cancelPending}>{isSubmitting ? "正在保存…" : "保存并查看详情"}</button>
+        <button type="submit" disabled={isSubmitting || keepDraftPending || cancelPending}>{isSubmitting ? "保存中…" : "保存"}</button>
         <button
           type="button"
           className={styles.cancel}
           disabled={isSubmitting || keepDraftPending || cancelPending}
           onClick={keepDraftAndLeave}
         >
-          {keepDraftPending ? "正在保留草稿…" : "返回首页，保留草稿"}
+          {keepDraftPending ? "暂存中…" : "暂存"}
         </button>
         <button
           type="button"
@@ -382,7 +387,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
           disabled={isSubmitting || keepDraftPending || cancelPending}
           onClick={() => void cancelIntake()}
         >
-          {cancelPending ? "正在取消…" : "取消录入并删除草稿"}
+          {cancelPending ? "取消中…" : "取消"}
         </button>
       </div>
     </form>

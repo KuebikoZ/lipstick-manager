@@ -5,12 +5,14 @@ import { InventoryNotFoundError } from "@/lib/services/inventory-service";
 import { createInventoryService } from "@/lib/services/service-factory";
 import styles from "./page.module.css";
 import { ItemActions } from "@/components/inventory/ItemActions";
+import { ProductCover } from "@/components/inventory/ProductCover";
 import { buildDisplayName } from "@/lib/domain/display-name";
 
 export default async function InventoryDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ returnTo?: string }> }) {
   await requirePageSession();
   const item = await loadItem((await params).id);
   const displayName = buildDisplayName(item);
+  const cover = item.images.find((image) => image.id === item.cover_image_id) ?? item.images[0];
   const requestedReturn = (await searchParams).returnTo;
   const returnTo = requestedReturn?.startsWith("/inventory") || requestedReturn?.startsWith("/compare") ? requestedReturn : "/inventory";
   return (
@@ -18,6 +20,7 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
       <article className={styles.card}>
         <Link className={styles.back} href={returnTo}>← 返回{returnTo.startsWith("/compare") ? "买前查一查" : "口红柜"}</Link>
         <h1>{displayName}</h1>
+        <ProductCover imageUrl={cover?.url} name={displayName} colorFamily={item.color_family} variant="detail" />
         <dl>
           <div><dt>品牌</dt><dd>{item.brand ?? "未记录"}</dd></div>
           <div><dt>系列</dt><dd>{item.series ?? "未记录"}</dd></div>
@@ -30,10 +33,10 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
           {timeline(item).map((node,index)=><div key={node.label}><i>{index+1}</i><strong>{node.label}</strong><span>{node.text}</span></div>)}
         </section>
         <div className={styles.actions}>
-          <Link href="/inventory/new">继续新增</Link>
-          <Link href={returnTo}>返回列表</Link>
+          <Link href="/inventory/new">新增</Link>
+          <Link href={returnTo}>列表</Link>
+          <ItemActions id={item.id} revision={item.revision}/>
         </div>
-        <ItemActions id={item.id} revision={item.revision}/>
         <p className={styles.note}>日期仅用于管理提醒，不代表实物品质检测。</p>
       </article>
     </main>

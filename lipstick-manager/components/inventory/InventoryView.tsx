@@ -1,7 +1,7 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { InventoryListResult, LipstickItem } from "@/lib/domain/item";
 import { buildDisplayName } from "@/lib/domain/display-name";
+import { ProductCover } from "./ProductCover";
 import styles from "./InventoryView.module.css";
 
 const colors: Record<string, string> = { nude: "裸色系", rose: "豆沙色系", orange: "橘色系", red: "红色系", plum: "梅子色系", brown: "棕色系" };
@@ -37,8 +37,9 @@ export function InventoryView({ data, query }: { data: InventoryListResult; quer
 
 function Card({ item, returnTo }: { item: LipstickItem; returnTo: string }) {
   const name = buildDisplayName(item);
+  const cover = item.images.find((image) => image.id === item.cover_image_id) ?? item.images[0];
   return <Link className={styles.card} href={`/inventory/${item.id}?returnTo=${encodeURIComponent(returnTo)}`}>
-    <div className={styles.image}>{item.images[0] ? <Image unoptimized fill sizes="(max-width: 767px) 96px, 128px" src={item.images[0].url} alt=""/> : <span>{name.slice(0,1)}</span>}</div>
+    <div className={styles.image}><ProductCover imageUrl={cover?.url} name={name} colorFamily={item.color_family} /></div>
     <div><h2>{name}</h2><div className={styles.tags}><span>{life[item.lifecycle]}</span><span>{colors[item.color_family ?? ""] ?? "待分类"}</span></div><strong>{item.deadline ? `${item.deadline} · ${item.days_left! < 0 ? "已到期" : `剩余 ${item.days_left} 天`}` : "期限待补充"}</strong></div>
   </Link>;
 }

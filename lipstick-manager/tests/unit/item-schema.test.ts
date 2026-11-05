@@ -68,6 +68,18 @@ describe("item write schema", () => {
     }
   });
 
+  it("requires the first image to be the cover", () => {
+    const first = "4cf43d3d-f005-49cc-b03a-32f05dcaa735";
+    const second = "7bb11a3e-a2a0-4f71-8294-2c2472604579";
+    const result = createItemWriteSchema("2026-11-04").safeParse({
+      ...validInput,
+      image_ids: [first, second],
+      cover_image_id: second,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.flatten().fieldErrors.cover_image_id).toContain("第一张图片必须作为封面");
+  });
+
   it("allows a future expiry date when its source is explicit", () => {
     const result = createItemWriteSchema("2026-11-04").safeParse({
       ...validInput,

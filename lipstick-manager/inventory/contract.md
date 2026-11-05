@@ -131,7 +131,7 @@ EvidenceKind = image | official | authorized_store | user
 | `expires_on` | LocalDate/null | `null` | 当前实物明确日期或经用户确认的推算日期 |
 | `expiry_source` | ExpirySource/null | `null` | expires_on 非空时必填；为空时必须 null |
 | `note` | string/null | `null` | 最多 500 字符 |
-| `cover_image_id` | UUID/null | `null` | 必须属于当前 item |
+| `cover_image_id` | UUID/null | `null` | 有图时必须等于排序后 `image_ids[0]` 且属于当前 item；无图时为 `null` |
 | `created_at` | Instant | 服务端必填 | 录入时间，不随编辑改变 |
 | `updated_at` | Instant | 服务端必填 | 每次成功业务修改更新 |
 
@@ -459,7 +459,8 @@ draft → images_ready → queued → recognizing
 
 ### 6.3 详情与列表状态
 
-- 详情不展示产品图片，固定顺序：品牌-系列-色号组合名称 → 品牌/系列/色号 → 开封/期限/色系标签 → 使用期限卡片 → 备注 → 编辑/移出 → 删除文字入口。
+- 详情只展示一张封面图；有图时使用排序第一张，无图时使用与原型一致的默认口红插画。其后固定顺序为品牌-系列-色号组合名称 → 品牌/系列/色号 → 开封/期限/色系标签 → 使用期限卡片 → 备注。底部“新增／列表／编辑／移出”在手机与桌面均单排横向排列。
+- 新增页和编辑页均允许拖动调整已有图片顺序；`image_ids[0]` 必须与 `cover_image_id` 一致。无图片时 `cover_image_id=null`，页面显示默认插画但不创建图片记录。
 - 三节点时间轴始终显示：录入日期必有；未开封显示“尚未开封”；未知显示“未记录”；无 deadline 显示“待补充”。页面不显示“提醒截止日”字段。
 - 默认列表排序为 `expiry`；筛选顺序为期限、开封、色系、品牌。
 - 进入详情再返回必须保留筛选、排序、买前所选色系和滚动位置。

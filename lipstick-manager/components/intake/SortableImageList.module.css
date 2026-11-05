@@ -1,0 +1,15 @@
+.list { display: grid; gap: 10px; margin: 14px 0 0; padding: 0; list-style: none; }
+.list li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 82px; padding: 8px; border: 1px solid #e5d9d5; border-radius: 12px; background: #fff; transition: border-color .15s ease-out, background .15s ease-out; }
+.list li.dragging { border-color: var(--accent); background: #fff4f6; }
+.preview { position: relative; width: 64px; height: 64px; overflow: hidden; border-radius: 9px; background: #f4ece9; }
+.preview img { object-fit: cover; }
+.preview span { position: absolute; right: 4px; bottom: 4px; padding: 2px 5px; border-radius: 4px; color: #fff; background: rgb(48 43 42 / 82%); font-size: .65rem; }
+.meta { display: grid; gap: 4px; min-width: 0; }
+.meta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .875rem; }
+.meta small { color: var(--muted); }
+.handle { min-width: 48px; min-height: 44px; margin: 0; padding: 0 10px; border: 1px dashed var(--accent); color: var(--accent); background: transparent; touch-action: none; cursor: grab; }
+.handle:active { cursor: grabbing; }
+.keyboardActions { grid-column: 2 / -1; display: flex; align-items: center; gap: 6px; }
+.keyboardActions button { min-width: 44px; min-height: 44px; margin: 0; padding: 6px 10px; border: 0; color: var(--accent); background: transparent; }
+.keyboardActions button:disabled { color: #b9afac; }
+@media (min-width: 750px) { .list { grid-template-columns: repeat(3, minmax(0, 1fr)); } .list li { grid-template-columns: 64px minmax(0, 1fr); } .handle { grid-column: 1; width: 64px; } .keyboardActions { grid-column: 2; } }

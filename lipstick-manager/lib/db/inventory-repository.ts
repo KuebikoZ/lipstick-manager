@@ -100,15 +100,7 @@ export class InventoryRepository {
 
   async saveNewDraft(id: string, payload: DraftPayload): Promise<Draft | null> {
     const { data, error } = await this.client
-      .from("drafts")
-      .update({
-        payload,
-        updated_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1_000).toISOString(),
-      })
-      .eq("id", id)
-      .eq("kind", "new")
-      .select("*")
+      .rpc("save_lipstick_draft", { p_draft_id: id, p_payload: payload })
       .maybeSingle<Draft>();
     if (error) throw new InventoryDependencyError();
     return data;
@@ -198,8 +190,7 @@ export class InventoryRepository {
   }
 
   async updateItem(id: string, revision: number, input: ItemWriteInput): Promise<LipstickItem | null> {
-    const fields = { display_name: input.display_name, brand: input.brand, series: input.series, shade_code: input.shade_code, color_family: input.color_family, color_description: input.color_description, texture: input.texture, lifecycle: input.lifecycle, opened_on: input.opened_on, opening_precision: input.opening_precision, pao_months: input.pao_months, manufactured_on: input.manufactured_on, shelf_life_months: input.shelf_life_months, expires_on: input.expires_on, expiry_source: input.expiry_source, note: input.note, cover_image_id: input.cover_image_id };
-    const { data, error } = await this.client.from("lipstick_items").update({ ...fields, revision: revision + 1, updated_at: new Date().toISOString() }).eq("id", id).eq("revision", revision).neq("lifecycle", "discarded").select("*").maybeSingle<ItemRow>();
+    const { data, error } = await this.client.rpc("update_lipstick_item", { p_item_id: id, p_revision: revision, p_item: input }).maybeSingle<ItemRow>();
     if (error) throw new InventoryDependencyError();
     return data ? { ...withDeadline(data), images: await this.signedImages(id) } : null;
   }

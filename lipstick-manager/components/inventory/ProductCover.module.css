@@ -1,0 +1,11 @@
+.cover { position: relative; display: grid; place-items: center; width: 100%; overflow: hidden; border-radius: 12px; background: #f3e8e5; }
+.cover img { object-fit: cover; }
+.card { height: 100%; min-height: 120px; }
+.detail { aspect-ratio: 16 / 10; margin: 16px 0 24px; }
+.detail img { object-fit: contain; }
+.illustration { display: grid; place-items: center; width: 100%; height: 100%; }
+.lipstick { position: relative; width: 34px; height: 112px; margin-top: 28px; border-radius: 3px 3px 7px 7px; background: linear-gradient(90deg, #242120, #514944 52%, #242120); box-shadow: 11px 12px 16px rgb(48 43 42 / 16%); transform: rotate(-10deg); }
+.lipstick::before { position: absolute; top: -40px; left: 5px; width: 24px; height: 50px; border-radius: 15px 3px 0 0; background: var(--lipstick-color); content: ""; }
+.lipstick::after { position: absolute; top: 12px; width: 100%; height: 6px; background: linear-gradient(90deg, #b79663, #e4cb9e, #aa885d); content: ""; }
+.detail .lipstick { transform: scale(1.7) rotate(-10deg); }
+@media (max-width: 520px) { .detail { aspect-ratio: 4 / 3; } .detail .lipstick { transform: scale(1.35) rotate(-10deg); } }

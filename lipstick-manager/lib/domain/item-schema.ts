@@ -80,6 +80,13 @@ export function createItemWriteSchema(today: LocalDate) {
         message: "封面图片必须属于本次保存的图片",
       });
     }
+    if ((value.image_ids[0] ?? null) !== value.cover_image_id) {
+      context.addIssue({
+        code: "custom",
+        path: ["cover_image_id"],
+        message: "第一张图片必须作为封面",
+      });
+    }
 
     for (const error of validateDeadlineDates(value, today)) {
       if (error === "OPENED_ON_IN_FUTURE") {

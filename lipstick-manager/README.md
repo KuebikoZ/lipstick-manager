@@ -37,10 +37,12 @@
 1. `supabase/migrations/20261103220000_create_auth_login_attempts.sql`
 2. `supabase/migrations/20261104090000_create_inventory_domain.sql`
 3. `supabase/migrations/20261104130000_create_item_transaction.sql`
+4. `supabase/migrations/20261105193000_persist_image_order.sql`
 
 第二个 migration 建立领域表、约束、RLS 和私有 `lipstick-images` bucket。
 第三个 migration 建立 T4 手工新增使用的原子事务函数：同一幂等键和相同请求会返回
 同一条库存记录；相同幂等键对应不同请求时会拒绝覆盖；保存成功后清理新建草稿。
+第四个 migration 让新增草稿和已保存口红的图片顺序原子更新，并统一约定第一张图片为封面。
 `.env.local` 中的 `SUPABASE_STORAGE_BUCKET` 必须为 `lipstick-images`。本期浏览器不持有
 Supabase key；所有数据库和对象操作必须在 Auth.js 会话校验后的服务端路径中使用
 `SUPABASE_SECRET_KEY`。不要在 T1–T10 对生产项目执行 migration。

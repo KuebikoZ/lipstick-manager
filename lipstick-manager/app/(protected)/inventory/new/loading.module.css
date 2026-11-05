@@ -1,0 +1,8 @@
+.shell { width: min(100%, 680px); min-height: 100svh; margin: 0 auto; padding: 28px 16px; }
+.shell p { margin: 18px 0; color: var(--muted); }
+.back, .title, .card { background: #ece4e1; animation: pulse 1.1s ease-in-out infinite alternate; }
+.back { width: 150px; height: 24px; border-radius: 7px; }
+.title { width: min(72%, 340px); height: 54px; margin-top: 44px; border-radius: 10px; }
+.card { min-height: 190px; margin-top: 20px; border-radius: 16px; }
+@keyframes pulse { to { background: #f5efed; } }
+@media (prefers-reduced-motion: reduce) { .back, .title, .card { animation: none; } }

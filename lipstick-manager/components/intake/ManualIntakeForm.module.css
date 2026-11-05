@@ -1,13 +1,11 @@
-.form { width: min(100%, 680px); margin: 0 auto; padding: 20px 16px calc(112px + env(safe-area-inset-bottom)); }
+.form { width: min(100%, 680px); margin: 0 auto; padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
 .header { display: grid; gap: 12px; margin-bottom: 20px; }
 .header h1 { margin: 4px 0 0; font-size: clamp(1.8rem, 8vw, 2.6rem); }
 .back, .cancel { color: var(--accent); font-weight: 700; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
 .eyebrow { margin: 0; color: var(--accent); font-size: .75rem; font-weight: 800; letter-spacing: .16em; }
 .draftStatus { color: var(--muted); font-size: .875rem; }
-.notice { display: grid; gap: 6px; padding: 16px; border: 1px solid #e5d7d7; border-radius: 14px; background: #fff9f7; color: var(--muted); }
-.notice strong { color: var(--text); }
 .section { margin: 20px 0 0; padding: 20px 16px; border: 1px solid #e8deda; border-radius: 16px; background: var(--surface); }
-.section legend { padding: 0 6px; font-size: 1.1rem; font-weight: 800; }
+.section h2 { margin: 0 0 4px; font-size: 1.1rem; }
 .field { display: grid; gap: 8px; margin-top: 16px; font-weight: 700; }
 .field input, .field select, .field textarea { width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid #cfc1bd; border-radius: 10px; background: #fff; color: var(--text); font: inherit; }
 .field textarea { resize: vertical; }
@@ -21,11 +19,11 @@
 .colorChoice small { color: var(--muted); line-height: 1.35; }
 .help { margin: 4px 0 0; color: var(--muted); line-height: 1.6; }
 .error, .submitError { color: #9b2438; font-weight: 700; }
-.actions { position: fixed; z-index: 5; right: 0; bottom: 0; left: 0; display: grid; justify-items: center; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid #e5d9d5; background: rgb(247 243 241 / 96%); backdrop-filter: blur(12px); }
-.actions button { width: min(100%, 648px); margin: 0; }
-.actions .cancel { width: auto; min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--accent); font-size: .875rem; }
+.actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 24px; padding-bottom: env(safe-area-inset-bottom); }
+.actions button { width: 100%; min-height: 48px; margin: 0; padding: 0 10px; }
+.actions .cancel { min-height: 48px; border: 1px solid #d9cdca; background: #fff; color: var(--accent); font-size: .875rem; }
 .actions .cancel:hover:not(:disabled) { background: transparent; text-decoration: underline; }
-.submitError { width: min(100%, 648px); margin: 0 0 8px; }
+.submitError { grid-column: 1 / -1; margin: 0; }
 @media (min-width: 750px) {
   .form { padding-top: 40px; }
   .twoColumns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
