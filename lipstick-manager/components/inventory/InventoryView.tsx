@@ -1,8 +1,11 @@
+"use client";
 import Link from "next/link";
 import type { InventoryListResult, LipstickItem } from "@/lib/domain/item";
 import { buildDisplayName } from "@/lib/domain/display-name";
 import { ProductCover } from "./ProductCover";
 import styles from "./InventoryView.module.css";
+import { AnalyticsPageView } from "@/components/analytics/AnalyticsPageView";
+import { trackEvent } from "@/lib/analytics/client";
 
 const colors: Record<string, string> = { nude: "裸色系", rose: "豆沙色系", orange: "橘色系", red: "红色系", plum: "梅子色系", brown: "棕色系" };
 const life: Record<string, string> = { opened: "已开封", unopened: "未开封", unknown: "待补充" };
@@ -15,14 +18,18 @@ function params(query: Record<string, string | undefined>) {
 export function InventoryView({ data, query }: { data: InventoryListResult; query: Record<string, string | undefined> }) {
   const filtered = Boolean(query.life || query.time || query.color || query.brand);
   const returnTo = `/inventory${params(query) ? `?${params(query)}` : ""}`;
-  return <main className={styles.shell}>
+  return <main className={styles.shell}><AnalyticsPageView pageId="inventory" />
     <header className={styles.header}><div><p>YOUR PERSONAL COLLECTION</p><h1>我的口红柜</h1><span>让每一抹喜欢，都被好好记得。</span></div><nav><Link href="/compare">买前查一查</Link><Link className={styles.primary} href="/inventory/new">＋ 录入口红</Link></nav></header>
     <section className={styles.stats} aria-label="库存概览">
       <Link href="/inventory"><span>当前持有</span><strong>{data.summary.current}</strong><small>支</small></Link>
       <Link href="/inventory?life=opened"><span>已开封</span><strong>{data.summary.opened}</strong><small>支</small></Link>
       <Link href="/inventory?time=days_0_30"><span>30天内到期</span><strong>{data.summary.due_0_30}</strong><small>支</small></Link>
     </section>
-    <form key={params(query)} className={styles.filters} action="/inventory">
+    <form key={params(query)} className={styles.filters} action="/inventory" onSubmit={(event) => {
+      const form = new FormData(event.currentTarget);
+      const sortChanged = String(form.get("sort") ?? "expiry") !== (query.sort ?? "expiry");
+      trackEvent({ event_name: "action", page_id: "inventory", properties: { action: sortChanged ? "sort_change" : "filter_apply" } });
+    }}>
       <label>期限状态<select name="time" defaultValue={query.time ?? ""}><option value="">全部期限</option><option value="over_180">超过180天</option><option value="days_91_180">91–180天</option><option value="days_31_90">31–90天</option><option value="days_0_30">30天内到期（含今日）</option><option value="expired">已到期</option><option value="unknown">期限待补充</option></select></label>
       <label>开封状态<select name="life" defaultValue={query.life ?? ""}><option value="">全部状态</option><option value="opened">已开封</option><option value="unopened">未开封</option><option value="unknown">待补充</option></select></label>
       <label>色系<select name="color" defaultValue={query.color ?? ""}><option value="">全部色系</option>{Object.entries(colors).map(([v,l])=><option key={v} value={v}>{l}</option>)}<option value="pending">待分类</option></select></label>

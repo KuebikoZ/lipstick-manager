@@ -6,6 +6,7 @@ import type { LipstickItem } from "@/lib/domain/item";
 import { textures } from "@/lib/domain/inventory";
 import { SortableImageList, type SortableImage } from "@/components/intake/SortableImageList";
 import styles from "./EditInventoryForm.module.css";
+import { trackEvent } from "@/lib/analytics/client";
 
 const fields = [["brand","品牌"],["series","系列"],["shade_code","色号"],["manufactured_on","实物生产日期"],["expires_on","实物到期日期"]] as const;
 export function EditInventoryForm({ item }: { item: LipstickItem }) {
@@ -24,7 +25,8 @@ export function EditInventoryForm({ item }: { item: LipstickItem }) {
     const payload={revision:item.revision,display_name:buildDisplayName(identity),...identity,color_family:text("color_family"),color_family_confirmed:true,color_description:item.color_description,texture:text("texture"),lifecycle,opened_on:openedOn,opening_precision:openedOn?"exact":"unknown",pao_months:lifecycle==="opened"?number("pao_months"):null,manufactured_on:text("manufactured_on"),shelf_life_months:item.shelf_life_months,expires_on:expiresOn,expiry_source:expiresOn?"explicit":null,note:text("note"),image_ids:imageIds,cover_image_id:imageIds[0]??null,accepted_ai_task_id:null};
     const response=await fetch(`/api/v1/items/${item.id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     const body=response.status===204?null:await response.json().catch(()=>null);
-    if(!response.ok){setError(body?.error?.message??"保存失败，请稍后重试");setBusy(false);return}
+    if(!response.ok){trackEvent({event_name:"save_result",page_id:"intake_edit",properties:{outcome:"failure",mode:"edit"}});setError(body?.error?.message??"保存失败，请稍后重试");setBusy(false);return}
+    trackEvent({event_name:"save_result",page_id:"intake_edit",properties:{outcome:"success",mode:"edit"}});
     router.push(`/inventory/${item.id}`);router.refresh();
   }
   return <form className={styles.form} action={submit}>

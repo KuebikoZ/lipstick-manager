@@ -2,7 +2,7 @@
 
 > 状态：**Ready for development / 已定稿**  
 > 审查日期：2026-11-03  
-> 审查对象：PRD `20261102-174301-9f3b2a`、原型 `interactive-20261102-01`、`spec.md`  
+> 审查对象：PRD `20261105-224927-7c9e31`、原型 `interactive-20261102-01`、`spec.md`
 > 适用范围：单用户、公网部署、固定账号登录、移动端优先 MVP  
 > 本文只定义开发契约，不包含业务代码、依赖安装或工程配置修改
 
@@ -65,6 +65,7 @@
 | Evidence | 字段来源、图片索引或网页来源、采用关系 | 虚构来源、无依据置信度 | AI Task、Item |
 | Persistence | 数据事务、幂等、revision、草稿和任务持久化 | 浏览器作为真实数据源 | PostgreSQL、Private Storage |
 | Observability | request_id、结果、耗时、错误类型、AI 用量/费用 | 原图、备注、Cookie、密码、完整提示词日志 | 服务端日志 |
+| Product Measurement | 六类最小事件、会话/录入/AI 任务关联、指标汇总、受控任务记录 | 逐键输入、滚动深度、卡片曝光、第三方行为分析看板 | Analytics Event Store、业务数据 |
 
 ### 2.2 依赖方向
 
@@ -175,6 +176,8 @@ days_left = deadline - today(Asia/Shanghai)
 **Evidence**：`id`、`ai_task_id`、`field_name`、`kind`、`url`、`image_id`、`excerpt`、`retrieved_at`。`image` 证据必须有 image_id；网页证据必须有真实 URL 和 retrieved_at；`excerpt` 最多 500 字符。证据用于服务端质量校验与评测，不在录入页展示。
 
 **AuthLoginAttempt**：`key_hash`、`window_started_at`、`failure_count`、`locked_until`、`updated_at`。`key_hash` 由 IP HMAC 与用户名 HMAC 组合，不保存明文 IP、用户名或密码；成功登录清除对应记录，过期窗口定期清理。该表只用于固定账号限流，不构成用户管理系统。
+
+**AnalyticsEvent**：`event_id`、`event_name`、`occurred_at`、`environment`、`session_id`、`page_id`、`intake_id null`、`task_id null`、`properties`。`event_name` 只允许 `page_view | action | intake_start | ai_result | save_result | intake_end`。`event_id` 是幂等键；`properties` 只接受 PRD §16 的事件白名单字段。事件不得包含图片、备注、品牌/系列/色号正文、日期值、完整 URL、Cookie、密钥、提示词或模型原文。T10 Preview 测试和 T11 Production 真实试用必须按 `environment` 隔离。
 
 ### 3.5 生命周期转换
 
@@ -459,7 +462,7 @@ draft → images_ready → queued → recognizing
 
 ### 6.3 详情与列表状态
 
-- 详情只展示一张封面图；有图时使用排序第一张，无图时使用与原型一致的默认口红插画。其后固定顺序为品牌-系列-色号组合名称 → 品牌/系列/色号 → 开封/期限/色系标签 → 使用期限卡片 → 备注。底部“新增／列表／编辑／移出”在手机与桌面均单排横向排列。
+- 详情只展示一张封面图；有图时使用排序第一张，无图时使用与原型一致的默认口红插画。其后固定顺序为品牌-系列-色号组合名称 → 品牌/系列/色号 → 开封/期限/色系标签 → 使用期限卡片 → 备注。底部“新增／编辑／移出”在手机与桌面均单排横向排列；返回列表统一使用顶部返回入口。
 - 新增页和编辑页均允许拖动调整已有图片顺序；`image_ids[0]` 必须与 `cover_image_id` 一致。无图片时 `cover_image_id=null`，页面显示默认插画但不创建图片记录。
 - 三节点时间轴始终显示：录入日期必有；未开封显示“尚未开封”；未知显示“未记录”；无 deadline 显示“待补充”。页面不显示“提醒截止日”字段。
 - 默认列表排序为 `expiry`；筛选顺序为期限、开封、色系、品牌。
@@ -516,6 +519,8 @@ Supabase 本期只使用 Free，并在新加坡 `ap-southeast-1` 创建开发项
 | 删除 | 验证数据库业务记录/关联元数据硬删除、图片进入清理且接口不可再读取 |
 | 响应式 | 375px 完成登录、上传、编辑、筛选、详情、删除确认；1440px 基本可用 |
 | 性能 | 100 条库存筛选反馈 ≤300ms，首页读取 ≤2s，未达标需如实记录 |
+| 产品度量 | 六类事件可按 session/intake/task 关联；同一 event_id 重放不重复；手工/AI/失败降级/列表查找/买前/生命周期路径均可复算约定指标；事件无敏感正文 |
+| 结果验证 | T10 五项受控任务均记录完成、正确性、耗时、帮助和问题，且与事件及业务数据一致；T11 上线验证后才开始真实试用记录 |
 
 ### 8.2 契约变更流程
 
@@ -529,7 +534,7 @@ Supabase 本期只使用 Free，并在新加坡 `ap-southeast-1` 创建开发项
 6. 前后端 schema/types、API 实现与调用方。
 7. 单元、集成、E2E 和 fixture。
 
-破坏性变更必须提升 API 或 schema version；不得只改一端后要求另一端“自行兼容”。AI prompt/model 变化即使不改 HTTP schema，也必须更新 workflow/model version 并重跑同一评测集。
+破坏性变更必须提升 API 或 schema version；不得只改一端后要求另一端“自行兼容”。AI prompt/model 变化即使不改 HTTP schema，也必须更新 workflow/model version 并重跑同一评测集。事件名、触发口径、属性白名单或指标公式变化属于契约变更，必须同步 PRD、spec、事件 schema、汇总查询和验收样例。
 
 ## 9. 已确认决策与上线前操作
 

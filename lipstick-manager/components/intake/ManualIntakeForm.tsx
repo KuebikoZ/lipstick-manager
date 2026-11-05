@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import type { Draft } from "@/lib/domain/item";
@@ -12,6 +12,7 @@ import { colorFamilies, textures, type ColorFamily, type Lifecycle } from "@/lib
 import type { ItemWriteInput } from "@/lib/domain/item-schema";
 import { AIImageIntake } from "./AIImageIntake";
 import styles from "./ManualIntakeForm.module.css";
+import { trackEvent } from "@/lib/analytics/client";
 
 const optionalDate = z.union([z.literal(""), z.iso.date()]);
 const optionalInteger = (maximum: number) =>
@@ -154,6 +155,10 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
   const [imageIds, setImageIds] = useState<string[]>(initialPayload.image_ids ?? []);
   const [imagesTouched, setImagesTouched] = useState(false);
   const [acceptedTaskId, setAcceptedTaskId] = useState<string | null>(initialPayload.accepted_ai_task_id ?? null);
+  const started = useRef(false);
+  const [adoptedCount, setAdoptedCount] = useState(0);
+  const [ignoredCount, setIgnoredCount] = useState(0);
+  const [acceptedValues, setAcceptedValues] = useState<Record<string, string>>({});
   const {
     register,
     handleSubmit,
@@ -169,6 +174,12 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
   });
   const watchedValues = useWatch({ control });
   const lifecycle = watchedValues.lifecycle;
+
+  useEffect(() => {
+    if ((!isDirty && !imagesTouched) || started.current) return;
+    started.current = true;
+    trackEvent({ event_name: "intake_start", page_id: "intake_new", intake_id: draft.id, properties: { mode: acceptedTaskId ? "ai_assisted" : "manual" } });
+  }, [acceptedTaskId, draft.id, imagesTouched, isDirty]);
 
   useEffect(() => {
     if (!isDirty && !imagesTouched) return;
@@ -191,6 +202,8 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
+    const correctedFields = Object.entries(acceptedValues).filter(([field, accepted]) => String(values[field as keyof FormValues] ?? "") !== accepted).map(([field]) => field);
+    for (const field of correctedFields) trackEvent({ event_name: "action", page_id: "intake_new", intake_id: draft.id, task_id: acceptedTaskId, properties: { action: "ai_suggestion_correct", field: field as never } });
     const input = toItemInput(values, imageIds, acceptedTaskId);
     const body = JSON.stringify(input);
     const currentSubmission =
@@ -203,6 +216,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         body: JSON.stringify({ payload: toDraftPayload(values, imageIds, acceptedTaskId) }),
       });
       if (!draftResponse.ok) {
+        trackEvent({ event_name: "save_result", page_id: "intake_new", intake_id: draft.id, task_id: acceptedTaskId, properties: { outcome: "failure", mode: "create" } });
         setSubmitError("图片顺序暂时无法保存，请重试");
         return;
       }
@@ -216,15 +230,19 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
       });
       const result = (await response.json()) as ApiErrorBody & { data?: { id: string } };
       if (!response.ok || !result.data) {
+        trackEvent({ event_name: "save_result", page_id: "intake_new", intake_id: draft.id, task_id: acceptedTaskId, properties: { outcome: "failure", mode: "create" } });
         for (const [field, message] of Object.entries(result.error?.field_errors ?? {})) {
           setError(field as keyof FormValues, { message });
         }
         setSubmitError(result.error?.message ?? "保存失败，请稍后重试");
         return;
       }
+      trackEvent({ event_name: "save_result", page_id: "intake_new", intake_id: draft.id, task_id: acceptedTaskId, properties: { outcome: "success", mode: "create" } });
+      trackEvent({ event_name: "intake_end", page_id: "intake_new", intake_id: draft.id, task_id: acceptedTaskId, properties: { outcome: "success", mode: acceptedTaskId ? "ai_assisted" : "manual", adopted_count: adoptedCount, ignored_count: ignoredCount, corrected_count: correctedFields.length } });
       router.push(`/inventory/${result.data.id}`);
       router.refresh();
     } catch {
+      trackEvent({ event_name: "save_result", page_id: "intake_new", intake_id: draft.id, task_id: acceptedTaskId, properties: { outcome: "failure", mode: "create" } });
       setSubmitError("网络连接失败，内容已保留，请恢复网络后重试");
     }
   });
@@ -264,6 +282,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         return;
       }
       window.sessionStorage.removeItem(`ai-task:${draft.id}`);
+      trackEvent({ event_name: "intake_end", page_id: "intake_new", intake_id: draft.id, task_id: acceptedTaskId, properties: { outcome: "cancelled", mode: acceptedTaskId ? "ai_assisted" : "manual", adopted_count: adoptedCount, ignored_count: ignoredCount, corrected_count: 0 } });
       router.push("/");
       router.refresh();
     } catch {
@@ -290,6 +309,7 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
         draftId={draft.id}
         initialImageIds={imageIds}
         onImagesChange={(ids) => { setImageIds(ids); setImagesTouched(true); setAcceptedTaskId(null); }}
+        onIgnore={() => setIgnoredCount((count) => count + 1)}
         confirmedIdentity={{ brand: textOrNull(watchedValues.brand ?? ""), series: normalizeSeries(watchedValues.brand, watchedValues.series), shade_code: textOrNull(watchedValues.shade_code ?? "") }}
         onApply={(field, value, taskId) => {
           const fieldName = field as keyof FormValues;
@@ -297,6 +317,9 @@ export function ManualIntakeForm({ draft }: { draft: Draft }) {
           const normalized = typeof value === "number" ? String(value) : value ?? "";
           setValue(fieldName, normalized as never, { shouldDirty: true, shouldValidate: true });
           setAcceptedTaskId(taskId);
+          setAdoptedCount((count) => count + 1);
+          setAcceptedValues((values) => ({ ...values, [field]: String(normalized) }));
+          trackEvent({ event_name: "action", page_id: "intake_new", intake_id: draft.id, task_id: taskId, properties: { action: "ai_suggestion_adopt", field: field as never } });
         }}
       />
 

@@ -7,6 +7,7 @@ import styles from "./page.module.css";
 import { ItemActions } from "@/components/inventory/ItemActions";
 import { ProductCover } from "@/components/inventory/ProductCover";
 import { buildDisplayName } from "@/lib/domain/display-name";
+import { AnalyticsPageView } from "@/components/analytics/AnalyticsPageView";
 
 export default async function InventoryDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ returnTo?: string }> }) {
   await requirePageSession();
@@ -17,6 +18,7 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
   const returnTo = requestedReturn?.startsWith("/inventory") || requestedReturn?.startsWith("/compare") ? requestedReturn : "/inventory";
   return (
     <main className={styles.shell}>
+      <AnalyticsPageView pageId="detail" />
       <article className={styles.card}>
         <Link className={styles.back} href={returnTo}>← 返回{returnTo.startsWith("/compare") ? "买前查一查" : "口红柜"}</Link>
         <h1>{displayName}</h1>
@@ -34,7 +36,6 @@ export default async function InventoryDetailPage({ params, searchParams }: { pa
         </section>
         <div className={styles.actions}>
           <Link href="/inventory/new">新增</Link>
-          <Link href={returnTo}>列表</Link>
           <ItemActions id={item.id} revision={item.revision}/>
         </div>
         <p className={styles.note}>日期仅用于管理提醒，不代表实物品质检测。</p>

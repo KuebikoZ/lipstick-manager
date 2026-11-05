@@ -1,6 +1,6 @@
 # 口红柜
 
-单用户、移动端优先的口红库存管理 MVP。T1–T4 以及批次 A（T6→T7→T8）均已通过对应阶段验收。当前从批次 B 的 T5 开始，随后执行 T9、T10、T11；批次内逐项建立 checkpoint，批次完成后统一生成一次 Preview 并进行一次人工验收，T11 才进入 Production。
+单用户、移动端优先的口红库存管理 MVP。T1–T9.5 已完成；T5 AI 图片识别基础闭环对应 `b030b05`，T9 AI 质量收口对应 `3a116d6`，批次 B 修复后的稳定点为 `8c661c0`。当前执行 T10 唯一一次人工验收；用户确认 T10 通过即授权 T11 执行 Production 部署，上线后只做生产冒烟验证并开始真实试用记录，不再安排第二次人工验收。
 
 ## 本地环境
 
@@ -38,6 +38,8 @@
 2. `supabase/migrations/20261104090000_create_inventory_domain.sql`
 3. `supabase/migrations/20261104130000_create_item_transaction.sql`
 4. `supabase/migrations/20261105193000_persist_image_order.sql`
+5. `supabase/migrations/20261104190000_add_ai_intake_workflow.sql`
+6. `supabase/migrations/20261105230000_add_product_measurement.sql`
 
 第二个 migration 建立领域表、约束、RLS 和私有 `lipstick-images` bucket。
 第三个 migration 建立 T4 手工新增使用的原子事务函数：同一幂等键和相同请求会返回
