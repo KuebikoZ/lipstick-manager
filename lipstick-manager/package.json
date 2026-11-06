@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "auth:hash": "tsx scripts/hash-password.ts",
     "validate:env": "tsx scripts/validate-env.ts",
+    "public-demo:restore": "tsx scripts/restore-public-demo.ts --apply",
     "ai:evaluate": "node --env-file-if-exists=.env.local --import tsx scripts/evaluate-ai.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },

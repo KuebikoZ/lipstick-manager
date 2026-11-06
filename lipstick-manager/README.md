@@ -69,3 +69,14 @@ pnpm check
 - `APP_MODE=public-demo`：无需登录即可完整体验浏览、新增、AI、编辑和移出；写请求仍要求同源，数据和密钥仍只经服务端访问。
 
 公开体验版使用独立部署和独立数据环境，不得将管理员版的 Production 密钥复制到公开项目。CloudBase Run 使用仓库根目录的 `Dockerfile` 构建 Next.js standalone 服务。
+
+为公开体验版恢复管理员版当前持有库存及其图片时，先配置
+`.env.public-demo.local`，再运行：
+
+```bash
+pnpm public-demo:restore
+```
+
+脚本会强制确认源、目标 Supabase URL 不同，只清空公开体验版中的库存、草稿、
+AI 任务及相关图片，然后复制当前持有库存和图片。登录记录、AI 历史、证据和埋点
+不会从管理员版复制。
