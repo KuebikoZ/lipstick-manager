@@ -1,6 +1,8 @@
 # 口红柜
 
-单用户、移动端优先的口红库存管理 MVP。T1–T9.5 已完成；T5 AI 图片识别基础闭环对应 `b030b05`，T9 AI 质量收口对应 `3a116d6`，批次 B 修复后的稳定点为 `8c661c0`。当前执行 T10 唯一一次人工验收；用户确认 T10 通过即授权 T11 执行 Production 部署，上线后只做生产冒烟验证并开始真实试用记录，不再安排第二次人工验收。
+单用户、移动端优先的口红库存管理 MVP。保留登录保护的管理员版本已冻结为
+`admin-v1.0`；无需登录、可完整体验管理与 AI 识别的公开面试演示版单独部署，
+两套运行环境和数据相互隔离。
 
 ## 本地环境
 
@@ -68,15 +70,22 @@ pnpm check
 - `APP_MODE=admin`（默认）：保留固定管理员登录和全站保护，用于现有管理员版本。
 - `APP_MODE=public-demo`：无需登录即可完整体验浏览、新增、AI、编辑和移出；写请求仍要求同源，数据和密钥仍只经服务端访问。
 
-公开体验版使用独立部署和独立数据环境，不得将管理员版的 Production 密钥复制到公开项目。CloudBase Run 使用仓库根目录的 `Dockerfile` 构建 Next.js standalone 服务。
+公开体验版使用上海 CloudBase PostgreSQL、PG 模式私有云存储和 CloudBase Run，
+不得将管理员版的 Production 数据密钥复制到公开部署。CloudBase Run 使用仓库根目录的
+`Dockerfile` 构建 Next.js standalone 服务，容器监听 3000 端口。线上地址：
+https://lipstick-manager-public-342644-9-1360887153.sh.run.tcloudbase.com 。
+
+CloudBase Run 必须配置 `ANALYTICS_ENVIRONMENT=production`；本地和自动验证保持
+`development`，避免将测试事件计入公开版真实试用指标。CloudBase API Key 与模型 Key
+仅配置在服务端环境变量中，不进入镜像、浏览器或 Git。
 
 为公开体验版恢复管理员版当前持有库存及其图片时，先配置
-`.env.public-demo.local`，再运行：
+`.env.cloudbase-public.local`，再运行：
 
 ```bash
 pnpm public-demo:restore
 ```
 
-脚本会强制确认源、目标 Supabase URL 不同，只清空公开体验版中的库存、草稿、
+脚本只清空上海 CloudBase 公开体验环境中的库存、草稿、
 AI 任务及相关图片，然后复制当前持有库存和图片。登录记录、AI 历史、证据和埋点
 不会从管理员版复制。

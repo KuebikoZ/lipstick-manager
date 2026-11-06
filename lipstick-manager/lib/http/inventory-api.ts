@@ -17,7 +17,11 @@ export const uuidSchema = z.uuid();
 
 export function invalidOriginResponse(request: Request): Response | null {
   if (isPublicDemoMode()) {
-    return hasValidOrigin(request, new URL(request.url).origin)
+    const allowedOrigins = allowedAppOrigins(
+      process.env.APP_URL ?? new URL(request.url).origin,
+      new URL(request.url).origin,
+    );
+    return hasValidOrigin(request, allowedOrigins)
       ? null
       : errorResponse(403, "ORIGIN_MISMATCH", "请求来源无效");
   }

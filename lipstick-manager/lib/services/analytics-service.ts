@@ -4,6 +4,9 @@ import { InventoryValidationError } from "@/lib/services/inventory-service";
 
 export type AnalyticsEnvironment = "development" | "preview" | "production";
 export function analyticsEnvironment(env: Readonly<Record<string, string | undefined>>): AnalyticsEnvironment {
+  if (env.ANALYTICS_ENVIRONMENT === "production") return "production";
+  if (env.ANALYTICS_ENVIRONMENT === "preview") return "preview";
+  if (env.ANALYTICS_ENVIRONMENT === "development") return "development";
   if (env.VERCEL_ENV === "production") return "production";
   if (env.VERCEL_ENV === "preview") return "preview";
   return "development";

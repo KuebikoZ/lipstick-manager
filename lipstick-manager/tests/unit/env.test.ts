@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseAuthEnv, parseServerEnv, parseSupabaseEnv } from "../../lib/config/env";
+import { parseAuthEnv, parseBackendEnv, parseServerEnv, parseSupabaseEnv } from "../../lib/config/env";
 
 const validEnvironment = {
   APP_URL: "https://example.vercel.app",
@@ -65,5 +65,21 @@ describe("scoped server environment", () => {
   it("parses the server-only Supabase configuration independently", () => {
     const environment = parseSupabaseEnv(validEnvironment);
     expect(environment.SUPABASE_SECRET_KEY).toBe("supabase-secret-key");
+  });
+
+  it("uses the Shanghai CloudBase backend for public demo mode", () => {
+    const environment = parseBackendEnv({
+      APP_MODE: "public-demo",
+      CLOUDBASE_ENV_ID: "lipstick-public-demo-test",
+      CLOUDBASE_REGION: "ap-shanghai",
+      CLOUDBASE_APIKEY: "server-only-key",
+      CLOUDBASE_STORAGE_BUCKET: "lipstick-images",
+    });
+    expect(environment.provider).toBe("cloudbase");
+    expect(environment.storageBucket).toBe("lipstick-images");
+  });
+
+  it("keeps Supabase as the default admin backend", () => {
+    expect(parseBackendEnv(validEnvironment).provider).toBe("supabase");
   });
 });

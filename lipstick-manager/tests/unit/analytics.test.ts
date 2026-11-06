@@ -14,6 +14,7 @@ describe("product measurement", () => {
     expect(analyticsEventSchema.safeParse({ ...base, event_name: "save_result", properties: { outcome: "success", mode: "create", note: "secret" } }).success).toBe(false);
   });
   it("isolates deployment environments server-side", () => {
+    expect(analyticsEnvironment({ ANALYTICS_ENVIRONMENT: "production" })).toBe("production");
     expect(analyticsEnvironment({ VERCEL_ENV: "production" })).toBe("production");
     expect(analyticsEnvironment({ VERCEL_ENV: "preview" })).toBe("preview");
     expect(analyticsEnvironment({ NODE_ENV: "test" })).toBe("development");

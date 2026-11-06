@@ -13,11 +13,11 @@ const nextConfig: NextConfig = {
     const contentSecurityPolicy = [
       "default-src 'self'",
       "base-uri 'self'",
-      "connect-src 'self' https://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co https://*.tcloudbasegateway.com",
       "font-src 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'",
-      "img-src 'self' data: blob: https://*.supabase.co",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.tcloudbasegateway.com",
       "object-src 'none'",
       scriptSource,
       "style-src 'self' 'unsafe-inline'",

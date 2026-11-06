@@ -14,6 +14,13 @@ const supabaseEnvShape = {
     SUPABASE_STORAGE_BUCKET: z.string().trim().min(1),
 } as const;
 
+const cloudBaseEnvShape = {
+    CLOUDBASE_ENV_ID: z.string().trim().min(1),
+    CLOUDBASE_REGION: z.literal("ap-shanghai").default("ap-shanghai"),
+    CLOUDBASE_APIKEY: z.string().min(1),
+    CLOUDBASE_STORAGE_BUCKET: z.string().trim().min(1),
+} as const;
+
 const aiEnvShape = {
     AI_PROVIDER: z.literal("deepseek"),
     AI_MODEL: z.literal("deepseek-flash"),
@@ -31,6 +38,11 @@ const serverEnvSchema = z
 
 export type AuthEnv = z.infer<typeof authEnvSchema>;
 export type SupabaseEnv = z.infer<typeof supabaseEnvSchema>;
+const cloudBaseEnvSchema = z.object(cloudBaseEnvShape).strict();
+export type CloudBaseEnv = z.infer<typeof cloudBaseEnvSchema>;
+export type BackendEnv =
+  | { provider: "supabase"; storageBucket: string; config: SupabaseEnv }
+  | { provider: "cloudbase"; storageBucket: string; config: CloudBaseEnv };
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
 const serverEnvKeys = Object.keys(serverEnvSchema.shape);
@@ -82,6 +94,25 @@ export function parseSupabaseEnv(
   environment: Record<string, string | undefined>,
 ): SupabaseEnv {
   return parseSelectedEnv<SupabaseEnv>(supabaseEnvSchema, environment);
+}
+
+export function parseBackendEnv(
+  environment: Record<string, string | undefined>,
+): BackendEnv {
+  if (environment.APP_MODE === "public-demo") {
+    const config = parseSelectedEnv<CloudBaseEnv>(cloudBaseEnvSchema, environment);
+    return {
+      provider: "cloudbase",
+      storageBucket: config.CLOUDBASE_STORAGE_BUCKET,
+      config,
+    };
+  }
+  const config = parseSupabaseEnv(environment);
+  return {
+    provider: "supabase",
+    storageBucket: config.SUPABASE_STORAGE_BUCKET,
+    config,
+  };
 }
 
 const aiEnvSchema = z.object(aiEnvShape).strict();

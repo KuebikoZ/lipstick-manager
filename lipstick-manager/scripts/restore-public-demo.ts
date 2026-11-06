@@ -1,11 +1,19 @@
 import { readFile } from "node:fs/promises";
 import { parseEnv } from "node:util";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createBackendAdminClient } from "../lib/db/supabase-admin";
 
-type DemoEnvironment = {
+type SupabaseEnvironment = {
   SUPABASE_URL: string;
   SUPABASE_SECRET_KEY: string;
   SUPABASE_STORAGE_BUCKET: string;
+};
+
+type CloudBaseEnvironment = {
+  CLOUDBASE_ENV_ID: string;
+  CLOUDBASE_REGION: "ap-shanghai";
+  CLOUDBASE_APIKEY: string;
+  CLOUDBASE_STORAGE_BUCKET: string;
 };
 
 type ItemRow = {
@@ -25,19 +33,31 @@ type ImageRow = {
 
 function requireValue(
   environment: Record<string, string | undefined>,
-  key: keyof DemoEnvironment,
+  key: string,
 ): string {
   const value = environment[key]?.trim();
   if (!value) throw new Error(`Missing ${key}`);
   return value;
 }
 
-async function loadEnvironment(path: string): Promise<DemoEnvironment> {
+async function loadSupabaseEnvironment(path: string): Promise<SupabaseEnvironment> {
   const environment = parseEnv(await readFile(path, "utf8"));
   return {
     SUPABASE_URL: requireValue(environment, "SUPABASE_URL"),
     SUPABASE_SECRET_KEY: requireValue(environment, "SUPABASE_SECRET_KEY"),
     SUPABASE_STORAGE_BUCKET: requireValue(environment, "SUPABASE_STORAGE_BUCKET"),
+  };
+}
+
+async function loadCloudBaseEnvironment(path: string): Promise<CloudBaseEnvironment> {
+  const environment = parseEnv(await readFile(path, "utf8"));
+  const region = requireValue(environment, "CLOUDBASE_REGION");
+  if (region !== "ap-shanghai") throw new Error("Public demo must use ap-shanghai");
+  return {
+    CLOUDBASE_ENV_ID: requireValue(environment, "CLOUDBASE_ENV_ID"),
+    CLOUDBASE_REGION: region,
+    CLOUDBASE_APIKEY: requireValue(environment, "CLOUDBASE_APIKEY"),
+    CLOUDBASE_STORAGE_BUCKET: requireValue(environment, "CLOUDBASE_STORAGE_BUCKET"),
   };
 }
 
@@ -64,22 +84,19 @@ async function main(): Promise<void> {
     throw new Error("Refusing to replace public demo data without --apply");
   }
 
-  const sourceEnvironment = await loadEnvironment(".env.local");
-  const targetEnvironment = await loadEnvironment(".env.public-demo.local");
-  if (sourceEnvironment.SUPABASE_URL === targetEnvironment.SUPABASE_URL) {
-    throw new Error("Source and target Supabase projects must be different");
-  }
+  const sourceEnvironment = await loadSupabaseEnvironment(".env.local");
+  const targetEnvironment = await loadCloudBaseEnvironment(".env.cloudbase-public.local");
 
   const source = createClient(
     sourceEnvironment.SUPABASE_URL,
     sourceEnvironment.SUPABASE_SECRET_KEY,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
-  const target = createClient(
-    targetEnvironment.SUPABASE_URL,
-    targetEnvironment.SUPABASE_SECRET_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  const target = createBackendAdminClient({
+    provider: "cloudbase",
+    storageBucket: targetEnvironment.CLOUDBASE_STORAGE_BUCKET,
+    config: targetEnvironment,
+  });
 
   const { data: sourceItems, error: itemError } = await source
     .from("lipstick_items")
@@ -101,7 +118,7 @@ async function main(): Promise<void> {
   if (imageError) throw imageError;
   const images = (sourceImages ?? []) as ImageRow[];
 
-  await clearTargetInventory(target, targetEnvironment.SUPABASE_STORAGE_BUCKET);
+  await clearTargetInventory(target, targetEnvironment.CLOUDBASE_STORAGE_BUCKET);
 
   const itemsWithoutCovers = items.map((item) => ({
     ...item,
@@ -121,7 +138,7 @@ async function main(): Promise<void> {
     }
 
     const uploaded = await target.storage
-      .from(targetEnvironment.SUPABASE_STORAGE_BUCKET)
+      .from(targetEnvironment.CLOUDBASE_STORAGE_BUCKET)
       .upload(image.storage_path, downloaded.data, {
         contentType: image.mime_type,
         upsert: true,
@@ -144,9 +161,9 @@ async function main(): Promise<void> {
   console.log(`Public demo restored: ${items.length} items, ${images.length} images.`);
 }
 
-main().catch((error: unknown) => {
+main().then(() => process.exit(0)).catch((error: unknown) => {
   const name = error instanceof Error ? error.name : "UnknownError";
   const message = error instanceof Error ? error.message : "Restore failed";
   console.error(`${name}: ${message}`);
-  process.exitCode = 1;
+  process.exit(1);
 });
