@@ -48,12 +48,31 @@ export class UploadService {
       byte_size: parsed.data.byte_size, width: null, height: null, sha256: null, position, status: "temp",
     });
     if (insertError) throw new InventoryDependencyError();
-    const signed = await this.client.storage.from(this.bucket).createSignedUploadUrl(path);
-    if (signed.error || !signed.data) {
-      await this.client.from("lipstick_images").delete().eq("id", imageId);
-      throw new InventoryDependencyError();
+    return { image_id: imageId, upload_url: `/api/v1/uploads/${imageId}/content`, expires_in: 7200 };
+  }
+
+  async uploadReserved(id: string, bytes: Uint8Array, mimeType: string) {
+    const { data: image, error } = await this.client
+      .from("lipstick_images")
+      .select("storage_path,mime_type,byte_size")
+      .eq("id", id)
+      .eq("status", "temp")
+      .maybeSingle();
+    if (error) throw new InventoryDependencyError();
+    if (!image) throw new InventoryNotFoundError();
+    if (
+      !allowedImageMimeTypes.includes(mimeType as (typeof allowedImageMimeTypes)[number]) ||
+      mimeType !== image.mime_type ||
+      bytes.byteLength !== image.byte_size ||
+      bytes.byteLength > maxImageByteSize
+    ) {
+      throw new ImageUploadError(415, "UNSUPPORTED_MEDIA_TYPE", "图片类型或大小与上传预留不一致");
     }
-    return { image_id: imageId, upload_url: signed.data.signedUrl, expires_in: 7200 };
+    const uploaded = await this.client.storage.from(this.bucket).upload(image.storage_path, bytes, {
+      contentType: mimeType,
+      upsert: false,
+    });
+    if (uploaded.error) throw new InventoryDependencyError();
   }
 
   async complete(id: string) {
