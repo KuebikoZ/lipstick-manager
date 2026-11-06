@@ -62,3 +62,10 @@ pnpm check
 ```
 
 健康检查：`GET /api/health`。
+
+## 部署模式
+
+- `APP_MODE=admin`（默认）：保留固定管理员登录和全站保护，用于现有管理员版本。
+- `APP_MODE=public-demo`：无需登录即可完整体验浏览、新增、AI、编辑和移出；写请求仍要求同源，数据和密钥仍只经服务端访问。
+
+公开体验版使用独立部署和独立数据环境，不得将管理员版的 Production 密钥复制到公开项目。CloudBase Run 使用仓库根目录的 `Dockerfile` 构建 Next.js standalone 服务。

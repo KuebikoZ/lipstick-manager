@@ -11,10 +11,16 @@ import { errorResponse } from "@/lib/http/api-response";
 import { allowedAppOrigins, hasValidOrigin } from "@/lib/http/origin";
 import { ImageUploadError } from "@/lib/services/upload-service";
 import { AIRateLimitError } from "@/lib/services/ai-task-service";
+import { isPublicDemoMode } from "@/lib/config/app-mode";
 
 export const uuidSchema = z.uuid();
 
 export function invalidOriginResponse(request: Request): Response | null {
+  if (isPublicDemoMode()) {
+    return hasValidOrigin(request, new URL(request.url).origin)
+      ? null
+      : errorResponse(403, "ORIGIN_MISMATCH", "请求来源无效");
+  }
   const { APP_URL } = parseAuthEnv(process.env);
   const allowedOrigins = allowedAppOrigins(
     APP_URL,

@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import { authConfig } from "@/auth.config";
 import { decideAccess } from "@/lib/auth/access-policy";
 import { unauthorizedResponse } from "@/lib/http/api-response";
+import { isPublicDemoMode } from "@/lib/config/app-mode";
 
 const { auth } = NextAuth(authConfig);
 
 export const proxy = auth((request) => {
+  if (isPublicDemoMode()) return NextResponse.next();
   const { pathname, search } = request.nextUrl;
   const authenticated = Boolean(request.auth?.user?.id && request.auth.sessionValid);
 

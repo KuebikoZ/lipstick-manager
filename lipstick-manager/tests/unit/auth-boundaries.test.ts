@@ -5,8 +5,13 @@ import { createLoginKeyHash } from "@/lib/auth/login-rate-limit";
 import { safeReturnTo } from "@/lib/auth/return-to";
 import { messageForLoginCode } from "@/lib/auth/login-state";
 import { allowedAppOrigins, hasValidOrigin } from "@/lib/http/origin";
+import { appMode } from "@/lib/config/app-mode";
 
 describe("authentication boundaries", () => {
+  it("requires an explicit public-demo mode and otherwise remains admin-only", () => {
+    expect(appMode({})).toBe("admin");
+    expect(appMode({ APP_MODE: "public-demo" })).toBe("public-demo");
+  });
   it("protects pages and APIs while keeping login, health, and Auth.js public", () => {
     expect(decideAccess("/", false)).toBe("redirect_to_login");
     expect(decideAccess("/inventory", false)).toBe("redirect_to_login");
